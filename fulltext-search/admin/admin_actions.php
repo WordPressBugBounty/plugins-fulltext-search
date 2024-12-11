@@ -360,8 +360,8 @@ class WPFTS_Admin_Actions
 		$jx = new WPFTS_jxResponse();
 		
 		if (($data = $jx->getData()) !== false) {
-			//if (wp_verify_nonce($data['wpfts_options-nonce'], 'wpfts_options')) {
-				
+			if (wp_verify_nonce($data['_nonce'], 'index_rebuild_nonce')) {
+
 				$wpfts_core->set_option('index_ready', 0);
 				$wpfts_core->set_option('is_break_loop', 1);
 
@@ -376,9 +376,9 @@ class WPFTS_Admin_Actions
 
 				$jx->reload();
 				
-			//} else {
-			//	$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
-			//}
+			} else {
+				$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
+			}
 		}
 		$jx->echoJSON();
 		wp_die();
@@ -546,8 +546,13 @@ class WPFTS_Admin_Actions
 		if (wp_verify_nonce($data['wpfts_options-nonce_step1_query_preprocessing'], 'wpfts_options_step1_query_preprocessing')) {
 			
 			$v = isset($data['wpfts_internal_search_terms']) ? intval($data['wpfts_internal_search_terms']) : 0;
-
 			$wpfts_core->set_option('internal_search_terms', $v);
+
+			$v = isset($data['wpfts_use_stemming']) ? intval($data['wpfts_use_stemming']) : 0;
+			$wpfts_core->set_option('use_stemming', $v);
+
+			$v = isset($data['wpfts_stemming_language']) ? trim($data['wpfts_stemming_language']) : 'auto';
+			$wpfts_core->set_option('stemming_language', $v);
 
 			$jx->variable('code', 0);
 

@@ -3,8 +3,8 @@
 /*
 Plugin Name: WP Fast Total Search - The Power of Indexed Search
 Description: Extends the default search with relevance, jet speed and ability to search any posts, metadata, taxonomy, shortcode content and any piece of the wordpress data. No external software/service required.
-Version: 1.78.258
-Tested up to: 6.6.1
+Version: 1.79.262
+Tested up to: 6.7.1
 Author: Epsiloncool
 Author URI: https://e-wm.org
 License: GPLv3
@@ -37,7 +37,7 @@ Domain Path: /languages/
  * 
  *  @copyright 2013-2024
  *  @license GPLv3
- *  @version 1.78.258
+ *  @version 1.79.262
  *  @package WP Fast Total Search
  *  @author Epsiloncool <info@e-wm.org>
  */
@@ -55,8 +55,14 @@ Domain Path: /languages/
  * MIT license
  * Source: https://github.com/pgrabovets/json-view
  */
+/**
+ * PHP Stemmer
+ * 
+ * MIT License
+ * Copyright (c) 2016 wamania
+ */
 
-define('WPFTS_VERSION', '1.78.258');
+define('WPFTS_VERSION', '1.79.262');
 
 if (file_exists(dirname(__FILE__).'/extensions/index.php')) {
 	require_once dirname(__FILE__).'/extensions/index.php';
@@ -84,6 +90,8 @@ global $wpfts_core;
 $wpfts_core = new WPFTS_Core();
 $wpfts_core->root_dir = dirname(__FILE__);
 $wpfts_core->Init();
+
+require_once dirname(__FILE__).'/blocks/src/livesearch/index.php';
 
 register_activation_hook(__FILE__, array(&$wpfts_core, 'activate_plugin'));
 register_deactivation_hook(__FILE__, array(&$wpfts_core, 'deactivate_plugin'));

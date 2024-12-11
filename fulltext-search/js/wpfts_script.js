@@ -203,7 +203,10 @@ jQuery(document).ready(function()
 
             jQuery('.wpfts_show_resetting').css('display', 'block');
 
-            var formdata = wpftsiFormData(jQuery('#wpftsi_form'));
+            //var formdata = wpftsiFormData(jQuery('#wpftsi_form'));
+			var formdata = {
+				'_nonce': jQuery(this).attr('data-rebuild_nonce'),
+			};
 			wpftsiAction('wpftsi_submit_rebuild', formdata, function(jx){
                 jQuery('.wpfts_show_resetting').css('display', 'none');
             });
@@ -216,7 +219,10 @@ jQuery(document).ready(function()
 	{
         jQuery('.wpfts_show_resetting').css('display', 'block');
 
-        var formdata = wpftsiFormData(jQuery('#wpftsi_form'));
+        //var formdata = wpftsiFormData(jQuery('#wpftsi_form'));
+		let formdata = {
+			'_nonce': jQuery(this).attr('data-rebuild_nonce'),
+		};
 		wpftsiAction('wpftsi_submit_rebuild', formdata, function(jx){
             jQuery('.wpfts_show_resetting').css('display', 'none');
         });
@@ -228,7 +234,10 @@ jQuery(document).ready(function()
 
         jQuery('.wpfts_show_resetting').css('display', 'block');
 
-        var formdata = wpftsiFormData(jQuery('#wpftsi_form'));
+        //var formdata = wpftsiFormData(jQuery('#wpftsi_form'));
+		let formdata = {
+			'_nonce': jQuery(this).attr('data-rebuild_nonce'),
+		};
 		wpftsiAction('wpftsi_submit_rebuild', formdata, function(jx)
 		{
             jQuery('.wpfts_show_resetting').css('display', 'none');
@@ -373,7 +382,9 @@ jQuery(document).ready(function()
 
 	jQuery(document).on('click', '.notice .wpfts_btn_try_updatedb', function()
 	{
-		wpftsiAction('wpftsi_try_updatedb');
+		wpftsiAction('wpftsi_try_updatedb', {
+			'_nonce': jQuery(this).attr('data-nonce'),
+		});
 	});
 
 	jQuery('.btn_se_style_preview').on('click', function(e)

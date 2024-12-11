@@ -79,7 +79,7 @@ $version_text = 'v'.WPFTS_VERSION.'';
 
 		?>
 		<p style="text-align: center;">
-			<button type="button" class="button-primary btn_start_indexing"><?php echo esc_html(__('Start Indexing', 'fulltext-search')); ?></button>&nbsp;<span class="wpfts_show_resetting"><img src="<?php echo esc_url($wpfts_core->root_url); ?>/style/waiting16.gif" alt="">&nbsp;<?php echo esc_html(__('Resetting', 'fulltext-search')); ?></span>
+			<button type="button" class="button-primary btn_start_indexing" data-rebuild_nonce="<?php echo esc_html(wp_create_nonce('index_rebuild_nonce')); ?>"><?php echo esc_html(__('Start Indexing', 'fulltext-search')); ?></button>&nbsp;<span class="wpfts_show_resetting"><img src="<?php echo esc_url($wpfts_core->root_url); ?>/style/waiting16.gif" alt="">&nbsp;<?php echo esc_html(__('Resetting', 'fulltext-search')); ?></span>
 		</p>
 		<hr>
 	</div>

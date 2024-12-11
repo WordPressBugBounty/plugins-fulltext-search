@@ -169,10 +169,12 @@ class WPFTS_TokenCollector
 				}
 			}
 		}
+
 		// Sort combs by key
-		uksort($combs, function($v1, $v2){
-			return ($v1 < $v2);
+		uksort($combs, function($v1, $v2) {
+			return ($v1 < $v2) ? 1 : (($v1 > $v2) ? -1 : 0);
 		});
+
 		$res = array();
 		foreach ($combs as $cb) {
 			$res = array_merge($res, $cb);

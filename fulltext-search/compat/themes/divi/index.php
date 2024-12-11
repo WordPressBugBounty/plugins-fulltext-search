@@ -4,6 +4,21 @@
  * Compatibility patch for Divi theme 
  */
 
+add_action('init', function()
+{
+	global $wpfts_core;
+
+	if ($wpfts_core && is_object($wpfts_core)) {
+		// Okay
+	} else {
+		return;
+	}
+	
+	// Sorry, Divi developers, this functionality is not compatible with WPFTS. Let me know if I can 
+	// fix this using better way.
+	remove_action( 'pre_get_posts', 'et_pb_custom_search');
+}); 
+
 add_action('plugins_loaded', function()
 {
 	global $wpfts_core;
@@ -13,6 +28,10 @@ add_action('plugins_loaded', function()
 	} else {
 		return;
 	}
+
+	// Sorry, Divi developers, this functionality is not compatible with WPFTS. Let me know if I can 
+	// fix this by different way.
+	remove_action( 'pre_get_posts', 'et_pb_custom_search');
 
 	if (!function_exists('truncate_post')) {
 		// This function is a replacement for original "Divi Theme's" function that is created excerpts by its own method

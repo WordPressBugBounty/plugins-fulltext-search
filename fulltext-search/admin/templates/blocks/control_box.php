@@ -127,7 +127,7 @@ if ($is_hook_available > 0) {
 				<div class="col fixed-200 font-weight-bolder">
 				</div>
 				<div class="col fixed-150 font-weight-bolder">
-					<button type="button" class="btn btn-info btn-sm wpfts_btn_rebuild" name="wpfts_btn_rebuild" data-confirm="<?php echo esc_attr(__('This action will completely rebuild the search index completely, which could take some time. Are you sure?', 'fulltext-search')); ?>"><?php echo esc_html(__('Rebuild Index', 'fulltext-search')); ?></button>
+					<button type="button" class="btn btn-info btn-sm wpfts_btn_rebuild" name="wpfts_btn_rebuild" data-confirm="<?php echo esc_attr(__('This action will completely rebuild the search index completely, which could take some time. Are you sure?', 'fulltext-search')); ?>" data-rebuild_nonce="<?php echo wp_create_nonce('index_rebuild_nonce'); ?>"><?php echo esc_html(__('Rebuild Index', 'fulltext-search')); ?></button>
 					<span class="wpfts_show_resetting"><img src="<?php echo esc_url($wpfts_core->root_url); ?>/style/waiting16.gif" alt="">&nbsp;<?php echo esc_html(__('Resetting', 'fulltext-search')); ?></span>
 				</div>
 				<div class="col d-xl-none text-right">

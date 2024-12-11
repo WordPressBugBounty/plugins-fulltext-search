@@ -426,9 +426,9 @@ class WPFTS_Core
 				$is_all_great = false;
 
 				$s .= '<p>
-				<a href="#" class="button button-primary wpfts_btn_try_updatedb">'.esc_html(__('Try Again', 'fulltext-search')).'</a>
+				<a href="#" class="button button-primary wpfts_btn_try_updatedb" data-nonce="'.esc_html(wp_create_nonce( 'try_updatedb' )).'">'.esc_html(__('Try Again', 'fulltext-search')).'</a>
 				<a href="admin.php?page=wpfts-options-support" class="button button-secondary">'.esc_html(__('Contact Support', 'fulltext-search')).'</a>
-				<a href="#" class="wpfts_btn_rebuild" data-confirm="'.esc_attr(__('This action will completely rebuild the search index, which may take some time. Are you sure?', 'fulltext-search')).'">'.esc_html(__('Rebuild Index', 'fulltext-search')).'</a>
+				<a href="#" class="wpfts_btn_rebuild" data-confirm="'.esc_attr(__('This action will completely rebuild the search index, which may take some time. Are you sure?', 'fulltext-search')).'" data-rebuild_nonce="'.esc_html(wp_create_nonce('index_rebuild_nonce')).'">'.esc_html(__('Rebuild Index', 'fulltext-search')).'</a>
 			</p>';
 
 				// UpdateDB failed message
@@ -442,7 +442,7 @@ class WPFTS_Core
 
 			if ($this->is_wpfts_settings_page) {
 				// DB update required message (for internal pages)
-				$s = __('<b style="color: red;">The plugin\'s database requires update.</b><br>It is necessary to rebuild the index to ensure the correct operation of the search engine. This may take some time.<br><br>Click <a href="#" class="btn_notify_start_indexing">here</a> to rebuild the search index now.', 'fulltext-search');
+				$s = __('<b style="color: red;">The plugin\'s database requires update.</b><br>It is necessary to rebuild the index to ensure the correct operation of the search engine. This may take some time.<br><br>Click <a href="#" class="btn_notify_start_indexing" data-rebuild_nonce="'.esc_html(wp_create_nonce('index_rebuild_nonce')).'">here</a> to rebuild the search index now.', 'fulltext-search');
 
 				$this->output_admin_notice($s, 'notice notice-warning wpfts-notice', 'db_update');
 			} else {
@@ -784,6 +784,8 @@ class WPFTS_Core
 			'ping_period' => 30,
 			'est_time' => '00:00:00',
 			'internal_search_terms' => 1,
+			'use_stemming' => 1,
+			'stemming_language' => 'auto',
 			'include_attachments' => 1,
 			'content_open_shortcodes' => 1,
 			'content_is_remove_nodes' => 1,
@@ -958,8 +960,13 @@ class WPFTS_Core
 
 	public function set_option($optname, $value)
 	{
+//$logname = dirname(__FILE__).'/../wpfts_options_log.txt';
+//		file_put_contents($logname, "\n".date('Y-m-d H:i:s', current_time('timestamp')).' Save option: '.$optname.', value: '.print_r($value, true)."\n", FILE_APPEND);
+
 		$defaults = $this->default_options();
 		
+//		file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' Defaults has '.count($defaults).' values'."\n", FILE_APPEND);
+
 		if (isset($defaults[$optname])) {
 			// Allowed option
 			$v = $value;
@@ -978,16 +985,34 @@ class WPFTS_Core
 					$v = serialize($value);
 					break;
 			}
-			
+
 			$option_name = 'wpfts_'.$optname;
-			if (get_option($option_name, false) !== false) {
-				update_option($option_name, $v);
-			} else {
-				add_option($option_name, $v, '', 'no');
-			}			
+
+//			$current_value = get_option($option_name, false);
+//			ob_start();
+//			var_dump($current_value);
+//			$cv = ob_get_clean();
+
+//			file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' Allowed. Current value: '.print_r($cv, true)."\n", FILE_APPEND);
+
+			//if (get_option($option_name, false) !== false) {
+				update_option($option_name, $v, false);
+			//} else {
+			//	add_option($option_name, $v, '', 'no');
+			//}
+
+//			$new_value = get_option($option_name, false);
+//			ob_start();
+//			var_dump($new_value);
+//			$v2 = ob_get_clean();
+
+//			file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' New value after read: '.print_r($v2, true)."\n", FILE_APPEND);
+
 			return true;
 		} else {
 			// Not allowed option
+//			file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' NOT Allowed'."\n", FILE_APPEND);
+
 			return false;
 		}
 	}
@@ -2052,10 +2077,10 @@ class WPFTS_Core
 		
 		if (($data = $jx->getData()) !== false) {
 
-			/*if (!wp_verify_nonce($data['_nonce'], 'wpftsi_form5_nonce')) {
+			if (!wp_verify_nonce($data['_nonce'], 'try_updatedb')) {
 				echo '';
 				wp_die();
-			}*/
+			}
 
 			$this->set_option('updatedb_error_message', '');
 			
