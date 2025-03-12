@@ -1257,7 +1257,7 @@ class WPFTS_Core
 					$notify_text = '<p><b>WP Fast Total Search index:</b> '.sprintf(esc_html(__('The indexing rule set has changed and now %s records do not match the rules. Run a partial index update (this may take a while) or check the current ruleset.', 'fulltext-search')), '<b>'.$n_req_reset.'</b>').'</p>';
 
 					$notify_text .= '<p>
-        				<a href="#" class="button button-primary wpfts_btn_upgrade_index">'.esc_html(__('Upgrade Index', 'fulltext-search')).'</a>
+        				<a href="#" class="button button-primary wpfts_btn_upgrade_index"  data-upgradeindex_nonce="'.esc_html(wp_create_nonce('upgradeindex_nonce')).'">'.esc_html(__('Upgrade Index', 'fulltext-search')).'</a>
         				<a href="admin.php?page=wpfts-options-indexing-engine" class="button button-secondary">'.esc_html(__('Check Rules', 'fulltext-search')).'</a>
 						<span style="text-decoration: underline;color: #888;cursor: pointer;" class="dismiss-link">'.esc_html(__("Hide for 1 day", 'fulltext-search')).'</span>
 					</p>';

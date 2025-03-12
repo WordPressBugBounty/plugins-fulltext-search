@@ -102,7 +102,7 @@ $version_text = 'v'.WPFTS_VERSION.'';
 		<div>
 			<div class="bd-callout bd-callout-warning bg-white">
 				<p><?php echo wp_kses(sprintf(__('Important warning: There are currently %1s entries in the search index that do not meet the %2s indexing rules%3s. You should run a partial index upgrade on these entries to resolve this warning.', 'fulltext-search'), '<b>'.$n_req_reset.'</b>', '<a href="/wp-admin/admin.php?page=wpfts-options-indexing-engine">', '</a>'), array('p' => array(), 'b' => array(), 'a' => array('href' => array(), 'br' => array()))); ?></p>
-				<div class="btn btn-sm btn-warning wpfts_btn_upgrade_index"><?php echo esc_html(__('Upgrade Index', 'fulltext-search')); ?></div>
+				<div class="btn btn-sm btn-warning wpfts_btn_upgrade_index" data-upgradeindex_nonce="<?php echo esc_html(wp_create_nonce('upgradeindex_nonce')); ?>"><?php echo esc_html(__('Upgrade Index', 'fulltext-search')); ?></div>
 			</div>
 		</div>
 		<?php

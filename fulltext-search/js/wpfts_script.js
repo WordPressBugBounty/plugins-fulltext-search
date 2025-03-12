@@ -505,8 +505,10 @@ jQuery(document).ready(function()
 		}
 
 		jQuery(this).addClass('disabled');
-
-		wpftsiAction('wpftsi_submit_upgradeindex', {}, function(jx)
+		let formdata = {
+			'_nonce': jQuery(this).attr('data-upgradeindex_nonce'),
+		};
+		wpftsiAction('wpftsi_submit_upgradeindex', formdata, function(jx)
 		{	
 			if (('code' in jx) && (jx['code'] === 0)) {
 				//

@@ -2,8 +2,8 @@
 Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
 Requires at least: 5.0
-Tested up to: 6.7.1
-Stable tag: 1.79.262
+Tested up to: 6.7.2
+Stable tag: 1.79.264
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -90,6 +90,9 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.79.264 =
+* Fixed a potential security breach in updateindex AJAX request
 
 = 1.79.262 =
 * Added Gutenberg WP Blocks support (WPFTS Live Search Widget is now available for block themes)

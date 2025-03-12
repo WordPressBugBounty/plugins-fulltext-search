@@ -391,40 +391,44 @@ class WPFTS_Admin_Actions
 		$jx = new WPFTS_jxResponse();
 		
 		if (($data = $jx->getData()) !== false) {
-			
-			$time = time();
+			if (wp_verify_nonce($data['_nonce'], 'upgradeindex_nonce')) {
 
-			$rule_id = isset($data['rule_id']) ? intval($data['rule_id']) : 0;
+				$time = time();
 
-			$sql = $wpfts_core->getRecordsToResetSQL($rule_id);
+				$rule_id = isset($data['rule_id']) ? intval($data['rule_id']) : 0;
 
-			if ($sql) {
-				$prefix = $wpfts_core->dbprefix();
+				$sql = $wpfts_core->getRecordsToResetSQL($rule_id);
 
-				$wpfts_core->set_option('index_ready', 0);
-				$wpfts_core->set_option('is_break_loop', 1);
+				if ($sql) {
+					$prefix = $wpfts_core->dbprefix();
 
-				$q = 'update `'.$prefix.'index` inx left join ('.$sql.') tt on tt.id = inx.id set `force_rebuild` = 1 where not isnull(tt.id)';
-				$wpfts_core->db->query($q);
+					$wpfts_core->set_option('index_ready', 0);
+					$wpfts_core->set_option('is_break_loop', 1);
 
-				$err = $wpfts_core->db->get_last_error();
+					$q = 'update `'.$prefix.'index` inx left join ('.$sql.') tt on tt.id = inx.id set `force_rebuild` = 1 where not isnull(tt.id)';
+					$wpfts_core->db->query($q);
 
-				if (strlen($err) > 0) {
-					$jx->alert('Error: '.$err);
+					$err = $wpfts_core->db->get_last_error();
+
+					if (strlen($err) > 0) {
+						$jx->alert('Error: '.$err);
+					}
+
+					// Force status recalculation
+					$wpfts_core->set_option('status_next_ts', 0);
+					$wpfts_core->set_option('last_indexerstart_ts', 0);
+
+					// Remove notification
+					$wpfts_core->set_option('reqreset_message', '');
+					$wpfts_core->set_option('reqreset_message_expdt', date('Y-m-d H:i:s', current_time('timestamp') + 1 * 60));
+
+					// Force start indexing
+					$wpfts_core->CallIndexerStartNoBlocking();
+
+					$jx->reload();
 				}
-
-				// Force status recalculation
-				$wpfts_core->set_option('status_next_ts', 0);
-				$wpfts_core->set_option('last_indexerstart_ts', 0);
-
-				// Remove notification
-				$wpfts_core->set_option('reqreset_message', '');
-				$wpfts_core->set_option('reqreset_message_expdt', date('Y-m-d H:i:s', current_time('timestamp') + 1 * 60));
-
-				// Force start indexing
-				$wpfts_core->CallIndexerStartNoBlocking();
-
-				$jx->reload();
+			} else {
+				$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
 			}
 		}
 		
