@@ -727,6 +727,7 @@ class WPFTS_Admin_Actions
 					$key = $m[1];
 					switch ($key) {
 						case 'is_smart_excerpts':
+						case 'is_fix_blocks':
 						case 'is_smart_excerpt_text':
 						case 'is_show_score':
 						case 'is_not_found_words':

@@ -66,6 +66,23 @@ require_once dirname(__FILE__).'/../../../includes/wpfts_htmltools.php';
 			</div>
 			<div class="row">
 				<div class="col fixed-200 font-weight-bolder">
+					<?php echo esc_html(__('Fix Blocks Renderer', 'fulltext-search')); ?>
+				</div>
+				<div class="col fixed-150">
+					<?php
+					$is_fix_blocks = intval($wpfts_core->get_option('is_fix_blocks'));
+					WPFTS_Htmltools::displayLabelledCheckbox('wpfts_is_fix_blocks', 1, __('Enabled', 'fulltext-search'), $is_fix_blocks);
+					?>
+				</div>	
+				<div class="col d-xl-none text-right">
+					<p><a data-toggle="collapse" href="#wf_hint_fix_blocks" role="button" aria-expanded="false" aria-controls="wf_hint_fix_blocks"><i class="fa fa-info-circle"></i></a></p>
+				</div>
+				<div class="col col-xl col-12 d-xl-block collapse" id="wf_hint_fix_blocks">
+					<p class="text-secondary"><i><?php echo esc_html(__('Redefines WP Block "core/post-excerpt" renderer to allow links and hints in the dynamic WPFTS Smart Excerpts', 'fulltext-search')); ?></i></p>
+				</div>
+			</div>			
+			<div class="row">
+				<div class="col fixed-200 font-weight-bolder">
 					<?php echo esc_html(__('Optimal Length', 'fulltext-search')); ?>
 				</div>
 				<div class="col fixed-150">

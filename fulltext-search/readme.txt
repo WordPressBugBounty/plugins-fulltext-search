@@ -3,7 +3,7 @@ Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
 Requires at least: 5.0
 Tested up to: 6.7.2
-Stable tag: 1.79.264
+Stable tag: 1.79.268
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -90,6 +90,11 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.79.268 =
+* Added a support for WP native core/post-excerpt block
+* Sufficiently improved an IRules statistics calculation speed to prevent multiple runs when several admins are working on WordPress
+* Fixed a security breach in AJAX request processing code
 
 = 1.79.264 =
 * Fixed a potential security breach in updateindex AJAX request

@@ -798,6 +798,7 @@ class WPFTS_Core
 			'mainsearch_orderby' => 'relevance',
 			'mainsearch_order' => 'DESC',
 			'is_smart_excerpts' => 1,
+			'is_fix_blocks' => 1,
 			'is_smart_excerpt_text' => 1,
 			'is_show_score' => 1,
 			'is_not_found_words' => 1,
@@ -859,6 +860,8 @@ class WPFTS_Core
 			'status_next_ts' => 0,
 			'status_cache' => '',
 			'last_indexerstart_ts' => 0,
+			'irules_status_next_ts' => 0,
+			'irules_status_cache' => '',
 
 			'activation_error' => '',
 			'subscription_key' => '',
@@ -1248,7 +1251,7 @@ class WPFTS_Core
 		if (strlen($expdt) > 0) {
 			if (($hash !== $last_hash) || (strtotime($expdt) < current_time('timestamp'))) {
 				// Ok, let's check now
-				$irules_stats = (array)$this->getCurrentIRulesStats();
+				$irules_stats = (array)$this->getCurrentIRulesStats(false, true);	// Force to get from cache only
 
 				$n_req_reset = isset($irules_stats['n_req_reset']) ? intval($irules_stats['n_req_reset']) : 0;
 
@@ -2591,13 +2594,23 @@ class WPFTS_Core
 		return $hash;
 	}
 
-	public function getCurrentIRulesStats($is_force_reread = false)
+	public function getCurrentIRulesStats($is_force_reread = false, $is_get_from_cache = false)
 	{
 		global $wpdb;
 
 		$prefix = $this->dbprefix();
 
-		if (($this->irules_stats_cache === false) || ($is_force_reread)) {
+		$time = time();
+
+		$irules_status_next_ts = intval($this->get_option('irules_status_next_ts'));
+		if ((($irules_status_next_ts <= $time) || $is_force_reread) && (!$is_get_from_cache)) {
+
+//$tt0 = microtime(true);
+//$logident = substr(md5(uniqid()), 0, 7);
+
+//$arr = '';//debug_backtrace();
+//file_put_contents(dirname(__FILE__).'/irules_status_log.txt', $logident.' Started '.date('Y-m-d H:i:s', current_time('timestamp'))."\n".print_r($arr, true)."\n", FILE_APPEND);
+
 			$all_rules = (array)$this->decodeAndSyncIndexRules();
 
 			$w1 = array();
@@ -2640,7 +2653,7 @@ class WPFTS_Core
 				left join `'.$prefix.'index` inx
 					on (tt.ID = inx.tid) and (inx.tsrc = "wp_posts")
 				group by if(length(tt.algs_raw) > 0, tt.algs_raw, "0"), inx.rules_idset';
-
+	//file_put_contents(dirname(__FILE__).'/irules_status_log.txt', $logident.' Query:  '.$q."\n", FILE_APPEND);
 				$r2 = $this->db->get_results($q, ARRAY_A);
 
 				foreach ($r2 as $d) {
@@ -2707,8 +2720,30 @@ class WPFTS_Core
 			$stats['n_pending'] = $n_inindex - $n_actual;
 			$stats['n_req_reset'] = $n_req_reset;
 
-			$this->irules_stats_cache = $stats;
+			$stats['tsd'] = time();
+
+			$this->set_option('irules_status_next_ts', $time + 5 * 60);
+			$this->set_option('irules_status_cache', wpfts_json_encode($stats));
+
+			$stats['is_cached'] = false;
+
+//			$tt1 = microtime(true);
+//file_put_contents(dirname(__FILE__).'/irules_status_log.txt', $logident.' Finished '.date('Y-m-d H:i:s', current_time('timestamp')).' took '.($tt1 - $tt0)."\n\n", FILE_APPEND);
+
+
+		} else {
+			$stats = array();
+			try {
+				$stats = json_decode($this->get_option('irules_status_cache'), true);
+			} catch (Exception $e) {
+				$stats = array();
+			}
+
+			$stats['is_cached'] = true;
+
 		}
+
+		$this->irules_stats_cache = $stats;
 		
 		return $this->irules_stats_cache;
 	}
