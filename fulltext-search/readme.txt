@@ -2,8 +2,8 @@
 Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
 Requires at least: 5.0
-Tested up to: 6.7.2
-Stable tag: 1.79.268
+Tested up to: 6.8
+Stable tag: 1.79.270
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -11,50 +11,77 @@ Extends the default fulltext search with relevance, jet speed and ability to sea
 
 == Description ==
 
-Introducing WP Fast Total Search (WPFTS), the ultimate WordPress full-text search plugin that will revolutionize how you search for content on your website! WPFTS extends the standard search capabilities of WordPress by creating a transparent word-based index. This allows you to search not only by the title and content of posts, but also by meta-fields, custom types of posts, shortcode content, and even by the contents of attached files.
+**🚀 Supercharge Your WordPress Search with WP Fast Total Search (WPFTS)!**
 
-What's more, WPFTS doesn't require the installation of external indexing software, making it ideal for shared hostings. Plus, all other plugins will automatically use the word-based index after installing WPFTS. You can easily specify the relevance function by assigning weights for the title, content, and each of the meta-fields in your posts.
+Tired of the standard WordPress search that doesn't find what you need? Are your users struggling to find content hidden in meta fields, shortcodes, or even files?
 
-Unlike other search plug-ins, WPFTS doesn't replace the standard WP search, instead, it expands its functionality. All built-in functions of WP_Query are saved, and other plug-ins automatically use advanced search with WPFTS. With its built-in Live Search functionality, you can quickly find what you're looking for without ever leaving the search bar. Simply switch it on with WPFTS’s native flexible Search Widget, which you can install anywhere on your page/post with a special shortcode ([wpfts_widget]).
+**WP Fast Total Search (WPFTS)** is the solution that revolutionizes search on your site, making it truly **fast, accurate, and comprehensive**.
 
-The extended (Pro) version of the plugin allows you to automatically index the text content of attached files such as PDFs, giving you quick access to information contained within them.
+**Why WPFTS is Exactly What You Need:**
 
-With WPFTS, you can enjoy true indexed text search within title, content, shortcodes, meta field values, or programmatically-created text data. It dramatically extends the native WordPress search, supporting phrase search and offering powerful index clustering system. Plus, you can order results by relevance, date, post ID, title, slug, type, random, comment_count, and more.
+✨ **Searches EVERYWHERE:**
+Unlike standard search, WPFTS indexes and finds information not only in post **titles and content**, but also within:
+*   **Meta fields** (Custom Fields)
+*   **Custom Post Types**
+*   Text **inside shortcodes**
+*   Content of **attached files** (PDF, DOCX, etc. in the Pro version)
+*   Dynamically **generated content**
 
-WPFTS is not just free, it doesn't require 3rd-party libraries or services. Everything happens right inside your website! It also supports language translations (English, German, Dutch, Russian and Ukrainian are ready now), removes HTML tags and comments from post content before indexing it (useful for Gutenberg-driven sites and themes), and does the text search inside shortcode content.
+⚙️ **Simplicity and Compatibility:**
+*   **No External Dependencies:** Doesn't require installing heavy external services (like Elasticsearch or Solr). Perfect for **standard shared hosting**!
+*   **Enhances, Doesn't Replace:** WPFTS *enhances* the standard WordPress search (`WP_Query`), it doesn't break it. All your plugins and themes using standard search will **automatically work better** with WPFTS.
+*   **Works Out-of-the-Box:** Just install and activate.
 
-With its TRUE relevance algorithm using improved TF-IDF, WPFTS offers a relevance formula that can be justified via settings. You can make default search WP ordering configurable, and it has API and full documentation to customize plugin’s behavior.
+🎯 **Flexibility and Control:**
+*   **Customizable Relevance:** Control what matters most in search results! Assign "weights" for title, content, and each meta field using an **improved TF-IDF algorithm**.
+*   **Live Search (AJAX):** Let users see search results instantly as they type. Easily added via the widget or shortcode `[wpfts_widget]`.
+*   **Phrase Search Support:** Find exact matches.
+*   **Flexible Sorting:** Sort results by relevance, date, title, and many other parameters.
 
-WPFTS works well with PHP 5.6+ up to PHP 8.2+ and supports add-ons, including a big library of them. You can even write your own extensions!
+**Key Advantages of WPFTS:**
 
-In short, WPFTS is the ultimate WordPress search plugin that you simply must have. Try it today and discover how easy it is to find the information you need on your site!
+*   ✅ **True Indexed Search:** Fast and efficient.
+*   ✅ **No External Libraries or Services Required:** Everything works right inside your website.
+*   ✅ **HTML Cleanup:** Correctly indexes content by removing tags and comments (important for Gutenberg).
+*   ✅ **Language Support:** Ready translations (English, German, Dutch, Russian, Ukrainian) and easy to add your own.
+*   ✅ **API and Documentation:** Extend and customize the plugin to fit your needs.
+*   ✅ **Compatibility:** Works great with PHP 5.6 up to PHP 8.2+.
+*   ✅ **Extensibility:** Supports add-ons, with a large library available and the ability to create your own.
 
-[TEST DRIVE](https://fulltextsearch.org/evaluation/ "WP Fast Total Search Pro Evaluation License") | [**GET PRO**](https://fulltextsearch.org/buy/ "Download WP Fast Total Search Pro") 💎
+---
 
-Please note, that the [PRO](https://fulltextsearch.org/buy/ "WP Fast Total Search Pro plugin") version of this plugin also supports:
+**💎 Get Even More with WP Fast Total Search Pro!**
 
-* File attachments search by their content (PDF, DOC, DOCX and other files currently supported)
-* Filter file search by mime-type
-* Display PDF content in search results using Smart Excerpts
-* External service to extract text information from files can be used (license included)
-* Technical support (with installing, configuring, fixing conflicts)
-* Regular automatic updates (it works the same way as WP repository updates)
-* A bunch of add-ons which makes it possible to index and search the content and files generated by other plugins and themes (for example: file search add-on for Wordpress Download Manager plugin, add-on for Filebase Pro, add-on for Delicious Downloads, and many more). Pro user may ask us to build a custom add-on for their own websites.
+The Pro version unlocks powerful features:
 
-= Translation =
+*   📄 **Search Inside File Content:** Indexes text within PDF, DOC, DOCX, and other formats.
+*   🔍 **Filter Search by File Type** (MIME-type).
+*   💡 **Smart Excerpts:** Displays PDF content snippets directly in search results.
+*   ☁️ **Optional External Service** for text extraction from files (license included).
+*   🤝 **Priority Technical Support:** Help with installation, configuration, and conflict resolution.
+*   🔄 **Regular Auto-Updates:** Just like plugins from the WordPress repository.
+*   🧩 **Premium Add-on Bundle:** Integrations with popular plugins (WordPress Download Manager, Filebase Pro, Delicious Downloads, etc.) to index their content and files. *Ability to request custom add-on development.*
 
-We want to give a huge thanks to the following translators who made our plugin accessible to non-English speakers:
+**[TEST DRIVE - TRY FOR FREE](https://fulltextsearch.org/evaluation/ "WP Fast Total Search Pro Evaluation License") | [GET PRO](https://fulltextsearch.org/buy/ "Download WP Fast Total Search Pro") 💎**
 
-torkeller ([@torkeller](https://profiles.wordpress.org/torkeller/)) for German and German_formal 
-Peter Smits [@psmits1567](https://wordpress.org/support/users/psmits1567/) for Dutch
-Lera Suhanova for Ukrainian
-epsiloncool [@epsiloncool](https://profiles.wordpress.org/epsiloncool/) for Russian
+---
 
-We invite you to translate the plug-in into your language. Let it be useful to everyone.
+**🌍 Translations**
 
-= Documentation =
+We are grateful to the translators who made the plugin accessible worldwide:
 
-Please refer [Documentation](https://fulltextsearch.org/documentation/ "WP Fast Total Search Documentation").
+*   torkeller ([@torkeller](https://profiles.wordpress.org/torkeller/)) for German and German_formal 
+*   Peter Smits [@psmits1567](https://wordpress.org/support/users/psmits1567/) for Dutch
+*   Lera Suhanova for Ukrainian
+*   epsiloncool [@epsiloncool](https://profiles.wordpress.org/epsiloncool/) for Russian
+
+Join us in translating the plugin into your language! Let's make it useful for everyone.
+
+---
+
+**📚 Documentation**
+
+Detailed information can be found in the [Documentation](https://fulltextsearch.org/documentation/ "WP Fast Total Search Documentation").
 
 == Installation ==
 
@@ -90,6 +117,12 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.79.270 =
+* Approved compatibility with Wordpress 6.8
+
+= 1.79.269 =
+* Made plugin description user-friendly
 
 = 1.79.268 =
 * Added a support for WP native core/post-excerpt block
