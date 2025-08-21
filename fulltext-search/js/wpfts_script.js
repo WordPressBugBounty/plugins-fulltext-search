@@ -438,6 +438,7 @@ jQuery(document).ready(function()
 
 		var data = {
 			'is_pause': 1,
+			'_nonce': document.nonce_setpause,
 		};
 
         wpftsiAction('wpftsi_set_pause', data, function(jx)
@@ -461,6 +462,7 @@ jQuery(document).ready(function()
 
 		var data = {
 			'is_pause': 0,
+			'_nonce': document.nonce_setpause,
 		};
 
         wpftsiAction('wpftsi_set_pause', data, function(jx)

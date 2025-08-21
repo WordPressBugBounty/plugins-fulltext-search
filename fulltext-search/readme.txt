@@ -2,8 +2,8 @@
 Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
 Requires at least: 5.0
-Tested up to: 6.8
-Stable tag: 1.79.270
+Tested up to: 6.8.2
+Stable tag: 1.79.274
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -20,7 +20,9 @@ Tired of the standard WordPress search that doesn't find what you need? Are your
 **Why WPFTS is Exactly What You Need:**
 
 ✨ **Searches EVERYWHERE:**
+
 Unlike standard search, WPFTS indexes and finds information not only in post **titles and content**, but also within:
+
 *   **Meta fields** (Custom Fields)
 *   **Custom Post Types**
 *   Text **inside shortcodes**
@@ -28,11 +30,13 @@ Unlike standard search, WPFTS indexes and finds information not only in post **t
 *   Dynamically **generated content**
 
 ⚙️ **Simplicity and Compatibility:**
+
 *   **No External Dependencies:** Doesn't require installing heavy external services (like Elasticsearch or Solr). Perfect for **standard shared hosting**!
 *   **Enhances, Doesn't Replace:** WPFTS *enhances* the standard WordPress search (`WP_Query`), it doesn't break it. All your plugins and themes using standard search will **automatically work better** with WPFTS.
 *   **Works Out-of-the-Box:** Just install and activate.
 
 🎯 **Flexibility and Control:**
+
 *   **Customizable Relevance:** Control what matters most in search results! Assign "weights" for title, content, and each meta field using an **improved TF-IDF algorithm**.
 *   **Live Search (AJAX):** Let users see search results instantly as they type. Easily added via the widget or shortcode `[wpfts_widget]`.
 *   **Phrase Search Support:** Find exact matches.
@@ -117,6 +121,9 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.79.274 =
+* Security fix to close non-critical breach
 
 = 1.79.270 =
 * Approved compatibility with Wordpress 6.8

@@ -3,8 +3,8 @@
 /*
 Plugin Name: WP Fast Total Search - The Power of Indexed Search
 Description: Extends the default search with relevance, jet speed and ability to search any posts, metadata, taxonomy, shortcode content and any piece of the wordpress data. No external software/service required.
-Version: 1.79.270
-Tested up to: 6.8
+Version: 1.79.274
+Tested up to: 6.8.2
 Author: Epsiloncool
 Author URI: https://e-wm.org
 License: GPLv3
@@ -14,7 +14,7 @@ Domain Path: /languages/
 */
 
 /**
- *  Copyright 2013-2024 Epsiloncool
+ *  Copyright 2013-2025 Epsiloncool
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,9 +35,9 @@ Domain Path: /languages/
  *  It will keep me working further on this useful product.
  ******************************************************************************
  * 
- *  @copyright 2013-2024
+ *  @copyright 2013-2025
  *  @license GPLv3
- *  @version 1.79.270
+ *  @version 1.79.274
  *  @package WP Fast Total Search
  *  @author Epsiloncool <info@e-wm.org>
  */
@@ -62,7 +62,7 @@ Domain Path: /languages/
  * Copyright (c) 2016 wamania
  */
 
-define('WPFTS_VERSION', '1.79.270');
+define('WPFTS_VERSION', '1.79.274');
 
 if (file_exists(dirname(__FILE__).'/extensions/index.php')) {
 	require_once dirname(__FILE__).'/extensions/index.php';
@@ -396,6 +396,8 @@ function wpfts_custom_js()
 		document.wpfts_lang_texts = <?php echo wpfts_json_encode($lang_texts); ?>;
 		document.wpfts_mid = "<?php echo esc_html(addslashes($mid)); ?>";
 		document.wpfts_last_ts = <?php echo isset($wpfts_gstatus['ts']) ? intval($wpfts_gstatus['ts']) : 0; ?>;
+		document.nonce_setpause = "<?php echo wp_create_nonce( 'setpause_nonce' ); ?>";
+
 	</script><?php
 
 	$version = (defined('WP_DEBUG') && WP_DEBUG) ? time() : WPFTS_VERSION;

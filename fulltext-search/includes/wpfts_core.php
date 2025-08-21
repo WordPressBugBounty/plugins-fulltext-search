@@ -2004,7 +2004,7 @@ class WPFTS_Core
 		$jx = new WPFTS_jxResponse();
 		
 		if (($data = $jx->getData()) !== false) {
-			//if (wp_verify_nonce($data['wpfts_options-nonce'], 'wpfts_options')) {
+			if (wp_verify_nonce($data['_nonce'], 'setpause_nonce')) {
 				
 				$is_pause = isset($data['is_pause']) ? intval($data['is_pause']) : 0;
 
@@ -2015,9 +2015,9 @@ class WPFTS_Core
 				$jx->variable('status', $status);
 				$jx->variable('code', 0);
 
-			//} else {
-			//	$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
-			//}
+			} else {
+				$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
+			}
 		}
 		$jx->echoJSON();
 		wp_die();
