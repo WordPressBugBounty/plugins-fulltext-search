@@ -1325,7 +1325,7 @@ class WPFTS_Search
 					$x = array();
 					foreach ($cw as $k => $d) {
 						//if(t1.token = "post_title", 100, 50)
-						$x[] = ' when "'.$k.'" then '.str_replace(',', '.', floatval($d));
+						$x[] = ' when "'.addslashes(trim(preg_replace('~[^a-zA-Z0-9_]~', '', $k))).'" then '.str_replace(',', '.', floatval($d));
 					}
 					$rcv = ' (case tbase.token '.implode('', $x).' else 1 end)';
 					$rcv2 = ' (case tbase2.token '.implode('', $x).' else 1 end)';

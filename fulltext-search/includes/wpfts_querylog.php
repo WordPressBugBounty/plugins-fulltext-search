@@ -156,7 +156,7 @@ class WPFTS_QueryLog
 		$sts['nonwpfts_queries'] = (isset($sts['nonwpfts_queries']) && ($sts['nonwpfts_queries'] != 0)) ? 1 : 0;
 		$sts['nontext_queries'] = (isset($sts['nontext_queries']) && ($sts['nontext_queries'] != 0)) ? 1 : 0;
 		$sts['detailed_log'] = (isset($sts['detailed_log']) && ($sts['detailed_log'] != 0)) ? 1 : 0;
-		$sts['settings_key'] = wp_create_nonce('qlog_settings_nonce');
+		$sts['settings_key'] = function_exists('wp_create_nonce') ? wp_create_nonce('qlog_settings_nonce') : '';
 
 		return $sts;
 	}
@@ -660,12 +660,12 @@ class WPFTS_QueryLog
 
 					} else {
 						// Failed to create qlog record in DB!
-						$qlog_id = wp_rand(95000000, 95999999);
+						$qlog_id = function_exists('wp_rand') ? wp_rand(95000000, 95999999) : rand(95000000, 95999999);
 					}
 
 				} else {
 					// QueryLog not used, but we still need for unique q_id
-					$qlog_id = wp_rand(99000000, 99999999);
+					$qlog_id = function_exists('wp_rand') ? wp_rand(99000000, 99999999) : rand(99000000, 99999999);
 				}
 				$wpq->wpftsi_session['q_id'] = $qlog_id;
 
