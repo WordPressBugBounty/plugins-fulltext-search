@@ -875,7 +875,9 @@ class WPFTS_Search
 				$masks = array();
 			
 				$st_msk_a = array();
+				$st_msk_a_args = array();
 				$st_q = array(0);
+				$st_q_args = array();
 				$st_msk_bit = 1;
 				$full_mask = 0;
 				foreach ($ts as $ts_item) {
@@ -883,23 +885,41 @@ class WPFTS_Search
 					$f = $ts_item[0];
 					if (mb_strlen($word) >= 3) {
 						if ($f) {
-							$st_q[] = '(w.word = "'.$wpdb->esc_like($word).'")';
-							$st_msk_a[] = 'if(w.word = "'.$wpdb->esc_like($word).'", '.$st_msk_bit.', 0)';
+							$st_q[] = '(w.word = %s)';
+							$st_q_args[] = $word;
+
+							$st_msk_a[] = 'if(w.word = %s, %d, 0)';
+							$st_msk_a_args[] = $word;
+							$st_msk_a_args[] = $st_msk_bit;
 						} else {
-							$st_q[] = '(w.word like "'.($is_deeper_search ? '%' : '').$wpdb->esc_like($word).'%")';
-							$st_msk_a[] = 'if(w.word like "'.($is_deeper_search ? '%' : '').$wpdb->esc_like($word).'%", '.$st_msk_bit.', 0)';							
+							$st_q[] = '(w.word like %s)';
+							$st_q_args[] = ($is_deeper_search ? '%' : '') . $wpdb->esc_like($word) . '%';
+
+							$st_msk_a[] = 'if(w.word like %s, %d, 0)';
+							$st_msk_a_args[] = ($is_deeper_search ? '%' : '') . $wpdb->esc_like($word) . '%';
+							$st_msk_a_args[] = $st_msk_bit;							
 						}
 					} else {
 						if ((mb_strlen($word) <= 2) && (mb_strlen($word) >= 1)) {
-							$tt = '';
 							if ($f) {
-								$tt = 'w.word = "'.$wpdb->esc_like($word).'"';
+								$st_q[] = '(w.word = %s)';
+								$st_q_args[] = $word;
+
+								$st_msk_a[] = 'if(w.word = %s, %d, 0)';
+								$st_msk_a_args[] = $word;
+								$st_msk_a_args[] = $st_msk_bit;
 							} else {
 								$maxn = 5 * mb_strlen($word);
-								$tt = '(w.word like "'.($is_deeper_search ? '%' : '').$wpdb->esc_like($word).'%") and (char_length(w.word) <= "'.$maxn.'")';
+
+								$st_q[] = '(((w.word like %s) and (char_length(w.word) <= %d)))';
+								$st_q_args[] = ($is_deeper_search ? '%' : '') . $wpdb->esc_like($word) . '%';
+								$st_q_args[] = $maxn;
+
+								$st_msk_a[] = 'if(((w.word like %s) and (char_length(w.word) <= %d)), %d, 0)';
+								$st_msk_a_args[] = ($is_deeper_search ? '%' : '') . $wpdb->esc_like($word) . '%';
+								$st_msk_a_args[] = $maxn;
+								$st_msk_a_args[] = $st_msk_bit;
 							}
-							$st_q[] = '('.$tt.')';
-							$st_msk_a[] = 'if('.$tt.', '.$st_msk_bit.', 0)';
 						}
 					}
 					$masks[$st_msk_bit] = array($word, mb_strlen($word));
@@ -956,11 +976,14 @@ class WPFTS_Search
 
 				// Exclude some words
 				$exc_words = array();
+				$exc_words_args = array();
 				foreach ($stop_words as $tt) {
 					if ($tt[0] == 0) {
-						$exc_words[] = '(`word` = "'.addslashes($tt[1]).'")';
+						$exc_words[] = '(`word` = %s)';
+						$exc_words_args[] = $tt[1];
 					} else {
-						$exc_words[] = '(`word` like "'.addslashes(str_replace('*', '', $tt[1])).'%")';
+						$exc_words[] = '(`word` like %s)';
+						$exc_words_args[] = $wpdb->esc_like(str_replace('*', '', $tt[1])) . '%';
 					}
 				}
 
@@ -1002,8 +1025,17 @@ class WPFTS_Search
 							NULL
 					';
 				}
+
+				// Build final prepare arguments array in correct order
+				$prepare_params = array_merge($st_msk_a_args, $st_q_args);
+				if (count($exc_words) > 0) {
+					$prepare_params = array_merge($prepare_params, $exc_words_args);
+				}
+
+				$prepared_qr = $wpdb->prepare($qr, $prepare_params);
+
 				// Query for word data
-				$res1 = $wpfts_core->db->get_results($qr, OBJECT);
+				$res1 = $wpfts_core->db->get_results($prepared_qr, OBJECT);
 			
 				$wz1_ram = memory_get_usage();
 
@@ -1326,6 +1358,7 @@ class WPFTS_Search
 					foreach ($cw as $k => $d) {
 						//if(t1.token = "post_title", 100, 50)
 						$x[] = ' when "'.addslashes(trim(preg_replace('~[^a-zA-Z0-9_]~', '', $k))).'" then '.str_replace(',', '.', floatval($d));
+
 					}
 					$rcv = ' (case tbase.token '.implode('', $x).' else 1 end)';
 					$rcv2 = ' (case tbase2.token '.implode('', $x).' else 1 end)';

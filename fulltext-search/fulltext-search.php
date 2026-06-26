@@ -3,7 +3,7 @@
 /*
 Plugin Name: WP Fast Total Search - The Power of Indexed Search
 Description: Extends the default search with relevance, jet speed and ability to search any posts, metadata, taxonomy, shortcode content and any piece of the wordpress data. No external software/service required.
-Version: 1.80.280
+Version: 1.81.282
 Tested up to: 7.0
 Author: Epsiloncool
 Author URI: https://e-wm.org
@@ -37,7 +37,7 @@ Domain Path: /languages/
  * 
  *  @copyright 2013-2026
  *  @license GPLv3
- *  @version 1.80.280
+ *  @version 1.81.282
  *  @package WP Fast Total Search
  *  @author Epsiloncool <info@e-wm.org>
  */
@@ -62,7 +62,7 @@ Domain Path: /languages/
  * Copyright (c) 2016 wamania
  */
 
-define('WPFTS_VERSION', '1.80.280');
+define('WPFTS_VERSION', '1.81.282');
 
 if (file_exists(dirname(__FILE__).'/extensions/index.php')) {
 	require_once dirname(__FILE__).'/extensions/index.php';
