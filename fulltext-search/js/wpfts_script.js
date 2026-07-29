@@ -625,7 +625,11 @@ function wpfts_test_waiter()
 
 function wpftsForceIndexer()
 {
-	wpftsiAction('wpfts_force_index', {});
+	var data = {
+		'_nonce': document.nonce_forceindex,
+	};
+
+    wpftsiAction('wpfts_force_index', data);
 }
 
 function wpftsShowIndexStatus(st) 

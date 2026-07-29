@@ -903,6 +903,10 @@ class WPFTS_Core
 
 			'theme_options' => serialize(array()),
 			'is_use_theme_compat' => 1,
+
+			'n_callback_method1' => 0,
+			'n_callback_method2' => 0,
+			'n_callback_method_used' => 0,
 		);
 
 		return apply_filters('wpfts_default_options', $default_options);
@@ -963,13 +967,8 @@ class WPFTS_Core
 
 	public function set_option($optname, $value)
 	{
-//$logname = dirname(__FILE__).'/../wpfts_options_log.txt';
-//		file_put_contents($logname, "\n".date('Y-m-d H:i:s', current_time('timestamp')).' Save option: '.$optname.', value: '.print_r($value, true)."\n", FILE_APPEND);
-
 		$defaults = $this->default_options();
 		
-//		file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' Defaults has '.count($defaults).' values'."\n", FILE_APPEND);
-
 		if (isset($defaults[$optname])) {
 			// Allowed option
 			$v = $value;
@@ -991,31 +990,10 @@ class WPFTS_Core
 
 			$option_name = 'wpfts_'.$optname;
 
-//			$current_value = get_option($option_name, false);
-//			ob_start();
-//			var_dump($current_value);
-//			$cv = ob_get_clean();
-
-//			file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' Allowed. Current value: '.print_r($cv, true)."\n", FILE_APPEND);
-
-			//if (get_option($option_name, false) !== false) {
-				update_option($option_name, $v, false);
-			//} else {
-			//	add_option($option_name, $v, '', 'no');
-			//}
-
-//			$new_value = get_option($option_name, false);
-//			ob_start();
-//			var_dump($new_value);
-//			$v2 = ob_get_clean();
-
-//			file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' New value after read: '.print_r($v2, true)."\n", FILE_APPEND);
+			update_option($option_name, $v, false);
 
 			return true;
 		} else {
-			// Not allowed option
-//			file_put_contents($logname, date('Y-m-d H:i:s', current_time('timestamp')).' NOT Allowed'."\n", FILE_APPEND);
-
 			return false;
 		}
 	}
@@ -2605,12 +2583,6 @@ class WPFTS_Core
 		$irules_status_next_ts = intval($this->get_option('irules_status_next_ts'));
 		if ((($irules_status_next_ts <= $time) || $is_force_reread) && (!$is_get_from_cache)) {
 
-//$tt0 = microtime(true);
-//$logident = substr(md5(uniqid()), 0, 7);
-
-//$arr = '';//debug_backtrace();
-//file_put_contents(dirname(__FILE__).'/irules_status_log.txt', $logident.' Started '.date('Y-m-d H:i:s', current_time('timestamp'))."\n".print_r($arr, true)."\n", FILE_APPEND);
-
 			$all_rules = (array)$this->decodeAndSyncIndexRules();
 
 			$w1 = array();
@@ -2653,7 +2625,6 @@ class WPFTS_Core
 				left join `'.$prefix.'index` inx
 					on (tt.ID = inx.tid) and (inx.tsrc = "wp_posts")
 				group by if(length(tt.algs_raw) > 0, tt.algs_raw, "0"), inx.rules_idset';
-	//file_put_contents(dirname(__FILE__).'/irules_status_log.txt', $logident.' Query:  '.$q."\n", FILE_APPEND);
 				$r2 = $this->db->get_results($q, ARRAY_A);
 
 				foreach ($r2 as $d) {
@@ -2726,10 +2697,6 @@ class WPFTS_Core
 			$this->set_option('irules_status_cache', wpfts_json_encode($stats));
 
 			$stats['is_cached'] = false;
-
-//			$tt1 = microtime(true);
-//file_put_contents(dirname(__FILE__).'/irules_status_log.txt', $logident.' Finished '.date('Y-m-d H:i:s', current_time('timestamp')).' took '.($tt1 - $tt0)."\n\n", FILE_APPEND);
-
 
 		} else {
 			$stats = array();
@@ -2867,13 +2834,97 @@ class WPFTS_Core
 	 */
 	public function ajax_force_index()
 	{
+		/**
+		 * Message to the security team:
+		 * 
+		 * This AJAX call must NOT be protected by an admin check like "current_user_can('manage_options')".
+		 * It can be triggered via an internal loop call from CallIndexerStartNoBlocking() method which 
+		 * does not send Auth cookies!
+		 * 
+		 * However, it sends the correct _nonce via POST.
+		 * 
+		 * BTW nothing wrong if somebody else calls IndexerStart(), this method is protected by the semaphore
+		 * so consecutive or frequent calls can't make any damage to the website.
+		 */
 		$jx = new WPFTS_jxResponse();
 
-		$this->IndexerStart();
+		$is_post = false;
+		if ((($data = $jx->getData()) !== false) || isset($_POST['_nonce'])) {
+			$nonce = '';
+			if (isset($data['_nonce'])) {
+				$nonce = $data['_nonce'];
+			} else {
+				if (isset($_POST['_nonce'])) {
+					// Internal loop call
+					$nonce = $_POST['_nonce'];
+					$is_post = true;
+				}
+			}
 
-		$jx->variable('code', 0);
+			if (wp_verify_nonce($nonce, 'forceindex_nonce')) {
+				if ($is_post) {
+					// We should reset respective method counter to let Core know this method is OKAY
+					$use_method = intval($this->get_option('n_callback_method_used', true));
+					if ($use_method == 1) {
+						$this->set_option('n_callback_method1', 0);
+					} else {
+						$this->set_option('n_callback_method2', 0);
+					}
+				}
+
+				$this->IndexerStart();
+				$jx->variable('code', 0);
+			} else {
+				$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
+			}
+		}
 		$jx->echoJSON();
 		wp_die();
+	}
+
+	function send_async_local_self_request($url, $body_data = [])
+	{
+    	$packet = [
+	        'body'     => $body_data,
+        	'blocking' => false,
+        	'timeout'  => 0.01,
+    	];
+
+		// Here we try to use "Host" header hack to reach local URL
+		$local_host = $_SERVER['SERVER_ADDR'];
+		$local_port = $_SERVER['SERVER_PORT'];
+
+    	$parsed_url = parse_url($url);
+    	if (!isset($parsed_url['host'])) {
+	        return false; // Broken initial URL
+	    }
+
+    	$original_host = $parsed_url['host'];
+    	$port_str = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+    	$host_header = $original_host . $port_str;
+
+    	// Change IP and Port to be local
+    	$parsed_url['host'] = $local_host;
+    	$parsed_url['port'] = $local_port;
+    
+    	// Compose URL back
+    	$fallback_url = (isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : 'http://')
+        	. $parsed_url['host']
+        	. ':'.$local_port
+        	. ($parsed_url['path'] ?? '/')
+        	. (isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '');
+
+    	// Modify request
+    	$fallback_packet = $packet;
+    
+    	// Add "Host" header
+    	$fallback_packet['headers']['Host'] = $host_header;
+
+    	// Disable SSL check, since local https will not pass with IP addresses
+    	$fallback_packet['sslverify'] = false;
+
+    	// 3. Вторая попытка: запрос на 127.0.0.1 с заголовком Host
+    	return wp_remote_post($fallback_url, $fallback_packet);
 	}
 
 	/**
@@ -2885,16 +2936,52 @@ class WPFTS_Core
 	{
 		$url = admin_url('admin-ajax.php');
 
-		$packet = array(
-			'body' => array(
-				'action' => 'wpfts_force_index',
-			),
-			'blocking' => false,
-			'timeout' => 0.01,
-		);
+		$max_tries = 5;
 
-		$wpres = wp_remote_post($url, $packet);
+		// Detect the best method to call back start_indexer
+		$n_method1 = intval($this->get_option('n_callback_method1', true));
+		$n_method2 = intval($this->get_option('n_callback_method2', true));
 
+		$use_method = 0;
+		if ($n_method1 <= $n_method2) {
+			// External URL
+			$use_method = 1;
+			$n_method1 ++;
+			if ($n_method1 > $max_tries) {
+				$n_method1 = $max_tries;
+				// When we reach max, we should decrease another counter to give it a chance
+				$n_method2 --;
+				$this->set_option('n_callback_method2', $n_method2);
+			}
+			$this->set_option('n_callback_method1', $n_method1);
+		} else {
+			// Local URL
+			$use_method = 2;
+			$n_method2 ++;
+			if ($n_method2 > $max_tries) {
+				$n_method2 = $max_tries;
+			}
+			$this->set_option('n_callback_method2', $n_method2);
+		}
+		$this->set_option('n_callback_method_used', $use_method);
+
+		$data = [
+			'action' => 'wpfts_force_index',
+			'_nonce' => wp_create_nonce('forceindex_nonce'),
+		];
+
+		if ($use_method == 2) {
+			$wpres = $this->send_async_local_self_request($url, $data);
+		} else {
+			$packet = array(
+				'body' => $data,
+				'blocking' => false,
+				'timeout' => 0.01,
+			);
+
+			$wpres = wp_remote_post($url, $packet);
+		}
+		
 		return $wpres;
 	}
 
@@ -3577,6 +3664,7 @@ exit();
 
 		// Try to set time limit for 60 seconds in case there is less
 		$time_limit = intval(ini_get("max_execution_time"));
+
 		if ($time_limit <= 59) {
 			if (function_exists('set_time_limit')) {
 				try {
