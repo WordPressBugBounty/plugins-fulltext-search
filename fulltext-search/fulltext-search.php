@@ -3,8 +3,8 @@
 /*
 Plugin Name: WP Fast Total Search - The Power of Indexed Search
 Description: Extends the default search with relevance, jet speed and ability to search any posts, metadata, taxonomy, shortcode content and any piece of the wordpress data. No external software/service required.
-Version: 1.82.284
-Tested up to: 7.0.2
+Version: 1.83.286
+Tested up to: 7.1
 Author: Epsiloncool
 Author URI: https://e-wm.org
 License: GPLv3
@@ -37,7 +37,7 @@ Domain Path: /languages/
  * 
  *  @copyright 2013-2026
  *  @license GPLv3
- *  @version 1.82.284
+ *  @version 1.83.286
  *  @package WP Fast Total Search
  *  @author Epsiloncool <info@e-wm.org>
  */
@@ -62,7 +62,7 @@ Domain Path: /languages/
  * Copyright (c) 2016 wamania
  */
 
-define('WPFTS_VERSION', '1.82.284');
+define('WPFTS_VERSION', '1.83.286');
 
 if (file_exists(dirname(__FILE__).'/extensions/index.php')) {
 	require_once dirname(__FILE__).'/extensions/index.php';
@@ -457,7 +457,19 @@ function wpfts_autocomplete_proc()
 		$widget_code = isset($form_data['wpfts_wdgt']) ? $form_data['wpfts_wdgt'] : '';
 		$s = isset($form_data['s']) ? $form_data['s'] : '';
 
-		$params = $form_data;
+		/**
+		 * Avoid meta_query / compare => REGEXP exploit. NEVER copy input $form_data to
+		 * the WP_Query params completely.
+		 * Instead, only copy allowed fields.
+		 * The set of allowed fields can be justified by 3rd party plugin/theme/custom code.
+		 */
+		$allowed_fields = apply_filters('wpfts_autocomplete_allowed_fields', 
+										['s', 'wpfts_wdgt', 'paged', 'lang'], 
+										$widget_code
+						);
+
+		$params = array_intersect_key((array) $form_data, array_flip($allowed_fields));
+
 		$params['wpfts_is_force'] = 1;	// Force WPFTS
 		$params['wpfts_source'] = 'wpfts_autocomplete_ajax';	// Specify that we are calling from here
 
@@ -466,7 +478,9 @@ function wpfts_autocomplete_proc()
 		} else {
 			// Set default parameters like WP does (for Main Query)
 			$params['post_status'] = 'publish';
+			// Note: WP does NOT set post_type by default, so we don't set it too. It's safe.
 		}
+
 		$loop = new WP_Query($params);
 		
 		global $wpfts_core;

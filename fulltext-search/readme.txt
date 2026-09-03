@@ -2,8 +2,8 @@
 Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
 Requires at least: 5.0
-Tested up to: 7.0.2
-Stable tag: 1.82.284
+Tested up to: 7.1
+Stable tag: 1.83.286
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -121,6 +121,9 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.83.286 =
+* Fixed exploit found by William Honnér: unauthenticated extraction of any postmeta value via a meta_query REGEXP oracle. Thanks a lot!
 
 = 1.82.284 =
 * Fixed unauthorized access bug to ajax_force_index(), reported by VDP and Wordfence teams. It was NOT fatal breache.
