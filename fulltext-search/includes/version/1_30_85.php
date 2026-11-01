@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 return array(
 	'text' => __('<ul><li>Big update: the new search algorithm and key improvements!</li>
 					<li>New algorithm that <b>supports sentences</b></li>

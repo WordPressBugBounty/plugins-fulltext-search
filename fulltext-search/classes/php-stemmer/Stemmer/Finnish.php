@@ -6,6 +6,9 @@
  */
 namespace Wamania\Snowball\Stemmer;
 
+defined('ABSPATH') || exit;
+
+
 use voku\helper\UTF8;
 
 /**

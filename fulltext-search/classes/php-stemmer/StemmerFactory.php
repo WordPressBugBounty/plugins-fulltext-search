@@ -2,6 +2,9 @@
 
 namespace Wamania\Snowball;
 
+defined('ABSPATH') || exit;
+
+
 use voku\helper\UTF8;
 use Wamania\Snowball\Stemmer\Catalan;
 use Wamania\Snowball\Stemmer\Danish;

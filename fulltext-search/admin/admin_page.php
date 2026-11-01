@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**
  * Copyright 2013-2024 Epsiloncool
  *
@@ -79,7 +82,7 @@ $version_text = 'v'.WPFTS_VERSION.'';
 
 		?>
 		<p style="text-align: center;">
-			<button type="button" class="button-primary btn_start_indexing" data-rebuild_nonce="<?php echo esc_html(wp_create_nonce('index_rebuild_nonce')); ?>"><?php echo esc_html(__('Start Indexing', 'fulltext-search')); ?></button>&nbsp;<span class="wpfts_show_resetting"><img src="<?php echo esc_url($wpfts_core->root_url); ?>/style/waiting16.gif" alt="">&nbsp;<?php echo esc_html(__('Resetting', 'fulltext-search')); ?></span>
+			<button type="button" class="button-primary btn_start_indexing" data-rebuild_nonce="<?php echo esc_attr(wp_create_nonce('index_rebuild_nonce')); ?>"><?php echo esc_html(__('Start Indexing', 'fulltext-search')); ?></button>&nbsp;<span class="wpfts_show_resetting"><img src="<?php echo esc_url($wpfts_core->root_url); ?>/style/waiting16.gif" alt="">&nbsp;<?php echo esc_html(__('Resetting', 'fulltext-search')); ?></span>
 		</p>
 		<hr>
 	</div>
@@ -102,7 +105,7 @@ $version_text = 'v'.WPFTS_VERSION.'';
 		<div>
 			<div class="bd-callout bd-callout-warning bg-white">
 				<p><?php echo wp_kses(sprintf(__('Important warning: There are currently %1s entries in the search index that do not meet the %2s indexing rules%3s. You should run a partial index upgrade on these entries to resolve this warning.', 'fulltext-search'), '<b>'.$n_req_reset.'</b>', '<a href="/wp-admin/admin.php?page=wpfts-options-indexing-engine">', '</a>'), array('p' => array(), 'b' => array(), 'a' => array('href' => array(), 'br' => array()))); ?></p>
-				<div class="btn btn-sm btn-warning wpfts_btn_upgrade_index" data-upgradeindex_nonce="<?php echo esc_html(wp_create_nonce('upgradeindex_nonce')); ?>"><?php echo esc_html(__('Upgrade Index', 'fulltext-search')); ?></div>
+				<div class="btn btn-sm btn-warning wpfts_btn_upgrade_index" data-upgradeindex_nonce="<?php echo esc_attr(wp_create_nonce('upgradeindex_nonce')); ?>"><?php echo esc_html(__('Upgrade Index', 'fulltext-search')); ?></div>
 			</div>
 		</div>
 		<?php
@@ -140,7 +143,8 @@ $version_text = 'v'.WPFTS_VERSION.'';
 		'sup' => array(),
 	);
 
-	$current_tab = isset($_GET['page']) ? $_GET['page'] : 'wpfts-options';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab selection.
+	$current_tab = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : 'wpfts-options';
 	foreach ($tabs as $tab_key => $tab_caption) {
 		$active = ($current_tab == $tab_key) ? ' active' : '';
 		echo '<li class="nav-item" data-name="'.esc_attr($tab_key).'"><a class="nav-link'.esc_attr($active).'" href="?page='.esc_attr($tab_key).'" id="wpfts_mainmenu_tab_'.esc_attr($tab_key).'"><i class="'.esc_attr($tab_caption[1]).'"></i><span class="wpfts_menu_text"> '.wp_kses($tab_caption[0], $kses_params).'</span></a></li>';

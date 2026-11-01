@@ -6,6 +6,9 @@
 
 namespace WPFTS\LiveSearchBlock;
 
+defined('ABSPATH') || exit;
+
+
 require_once dirname(__FILE__).'/../../../includes/widgets/wpfts_widget.class.php';
 
 add_action( 'rest_api_init', __NAMESPACE__ . '\\register_wpfts_livesearch_block_route' );

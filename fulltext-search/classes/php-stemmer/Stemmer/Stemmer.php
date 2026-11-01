@@ -1,6 +1,9 @@
 <?php
 namespace Wamania\Snowball\Stemmer;
 
+defined('ABSPATH') || exit;
+
+
 /**
  * @author Luís Cobucci <lcobucci@gmail.com>
  */

@@ -1,10 +1,14 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /*
 Plugin Name: WP Fast Total Search - The Power of Indexed Search
 Description: Extends the default search with relevance, jet speed and ability to search any posts, metadata, taxonomy, shortcode content and any piece of the wordpress data. No external software/service required.
-Version: 1.83.286
+Version: 1.84.291
 Tested up to: 7.1
+Requires at least: 5.8
 Author: Epsiloncool
 Author URI: https://e-wm.org
 License: GPLv3
@@ -37,7 +41,7 @@ Domain Path: /languages/
  * 
  *  @copyright 2013-2026
  *  @license GPLv3
- *  @version 1.83.286
+ *  @version 1.84.291
  *  @package WP Fast Total Search
  *  @author Epsiloncool <info@e-wm.org>
  */
@@ -62,7 +66,7 @@ Domain Path: /languages/
  * Copyright (c) 2016 wamania
  */
 
-define('WPFTS_VERSION', '1.83.286');
+define('WPFTS_VERSION', '1.84.291');
 
 if (file_exists(dirname(__FILE__).'/extensions/index.php')) {
 	require_once dirname(__FILE__).'/extensions/index.php';
@@ -129,8 +133,14 @@ add_action('wpfts_indexer_event', function()
 		));	
 	}
 
-	// Force indexer job to run
-	$wpfts_core->IndexerStart();
+	// The HTTP loop is the primary indexing mechanism. Only kick it if the DB
+	// flag says it has not checked in recently, so cron does not start parallel
+	// loops. If the self-request itself fails, run one step directly and let the
+	// next cron tick retry the HTTP loop.
+	$res = $wpfts_core->maybeStartIndexerHttp(60, true, true);
+	if ($res === false) {
+		$wpfts_core->IndexerStart();
+	}
 });
 
 add_action('wpfts_log_clean', function()
@@ -147,16 +157,51 @@ add_action('wpfts_log_clean', function()
 add_action('wp_enqueue_scripts', function () 
 {
 	global $wpfts_core;
+
+	if (!$wpfts_core) {
+		return;
+	}
 	
-	if (($wpfts_core) && (intval($wpfts_core->get_option('is_smart_excerpts')) != 0)) {
+	if (intval($wpfts_core->get_option('is_smart_excerpts')) != 0) {
 		//wp_enqueue_style( 'wpfts_front_styles', $wpfts_core->root_url.'/style/wpfts_front_styles.css', array(), WPFTS_VERSION);
 		echo '<style type="text/css">'.esc_html($wpfts_core->ReadSEStylesMinimized()).'</style>';
+	}
+
+	// Load the autocomplete assets only when a WPFTS search widget, block or
+	// shortcode is actually present on the page.
+	$should_enqueue = false;
+
+	if (function_exists('is_active_widget')) {
+		$should_enqueue = is_active_widget(false, false, 'wpfts_custom_widget', true);
+	}
+
+	if (!$should_enqueue && is_singular()) {
+		$post = get_post();
+		if ($post) {
+			if (has_block('wpfts/livesearch', $post)) {
+				$should_enqueue = true;
+			} elseif (has_shortcode($post->post_content, 'wpfts_widget')) {
+				$should_enqueue = true;
+			}
+		}
+	}
+
+	$should_enqueue = (bool) apply_filters('wpfts_enqueue_frontend_assets', $should_enqueue);
+
+	if (!$should_enqueue) {
+		return;
 	}
 
 	$version = (defined('WP_DEBUG') && WP_DEBUG) ? time() : WPFTS_VERSION;
 
 	wp_enqueue_style('wpfts_jquery-ui-styles', $wpfts_core->root_url.'/style/wpfts_autocomplete.css', array(), $version);
-	wp_enqueue_script('wpfts_frontend', plugins_url('js/wpfts_frontend.js', __FILE__), array('jquery', 'jquery-ui-autocomplete'), $version);
+	wp_enqueue_script('wpfts_frontend', plugins_url('js/wpfts_frontend.js', __FILE__), array('jquery', 'jquery-ui-autocomplete'), $version, true);
+
+	wp_localize_script('wpfts_frontend', 'wpfts_autocomplete_config', array(
+		'minLength' => max(1, intval($wpfts_core->get_option('autocomplete_minlength'))),
+		'delay' => max(0, intval($wpfts_core->get_option('autocomplete_delay'))),
+		'limit' => max(1, intval($wpfts_core->get_option('autocomplete_limit'))),
+	));
 });
 
 /** 
@@ -329,8 +374,6 @@ add_action('init', function ()
 			add_action('admin_menu', 'wpfts_admin_menu');
 			add_filter('plugin_row_meta', 'wpfts_plugin_links', 10, 2);
 		
-			load_plugin_textdomain( 'fulltext-search', false, basename(dirname(__FILE__)).'/languages/');
-		
 			add_action('admin_enqueue_scripts', 'wpfts_enqueues');
 			
 			add_action('wp_ajax_wpftsi_ping', array($wpfts_core, 'ajax_ping'));
@@ -372,6 +415,10 @@ add_action('init', function()
 
 function wpfts_custom_js()
 {
+	if (!current_user_can('manage_options')) {
+		return;
+	}
+
 	global $wpfts_core, $wpfts_gstatus;
 	
 	$wpfts_gstatus = $wpfts_core->get_status();
@@ -396,8 +443,8 @@ function wpfts_custom_js()
 		document.wpfts_lang_texts = <?php echo wpfts_json_encode($lang_texts); ?>;
 		document.wpfts_mid = "<?php echo esc_html(addslashes($mid)); ?>";
 		document.wpfts_last_ts = <?php echo isset($wpfts_gstatus['ts']) ? intval($wpfts_gstatus['ts']) : 0; ?>;
-		document.nonce_setpause = "<?php echo wp_create_nonce( 'setpause_nonce' ); ?>";
-		document.nonce_forceindex = "<?php echo wp_create_nonce( 'forceindex_nonce' ); ?>";
+		document.nonce_setpause = "<?php echo esc_js(wp_create_nonce( 'setpause_nonce' )); ?>";
+		document.nonce_forceindex = "<?php echo esc_js(wp_create_nonce( 'forceindex_nonce' )); ?>";
 
 	</script><?php
 
@@ -449,13 +496,16 @@ add_action('widgets_init', function()
 
 function wpfts_autocomplete_proc()
 {
+	global $wpfts_core;
+
 	$res = array();
 
-	$form_data = isset($_POST['form_data']) ? $_POST['form_data'] : array();
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- public autocomplete endpoint; fields are sanitized below.
+	$form_data = isset($_POST['form_data']) ? map_deep(wp_unslash((array) $_POST['form_data']), 'sanitize_text_field') : array();
 
 	if (is_array($form_data)) {
-		$widget_code = isset($form_data['wpfts_wdgt']) ? $form_data['wpfts_wdgt'] : '';
-		$s = isset($form_data['s']) ? $form_data['s'] : '';
+		$widget_code = isset($form_data['wpfts_wdgt']) ? sanitize_text_field($form_data['wpfts_wdgt']) : '';
+		$s = isset($form_data['s']) ? sanitize_text_field($form_data['s']) : '';
 
 		/**
 		 * Avoid meta_query / compare => REGEXP exploit. NEVER copy input $form_data to
@@ -468,10 +518,30 @@ function wpfts_autocomplete_proc()
 										$widget_code
 						);
 
-		$params = array_intersect_key((array) $form_data, array_flip($allowed_fields));
+		$params = array_intersect_key((array) $form_data, array_flip((array) $allowed_fields));
+
+		foreach ($params as $param_key => $param_value) {
+			if (is_scalar($param_value)) {
+				$params[$param_key] = sanitize_text_field((string) $param_value);
+			}
+		}
+
+		if (isset($params['paged'])) {
+			$params['paged'] = absint($params['paged']);
+		}
+		if (isset($params['lang'])) {
+			$params['lang'] = sanitize_key($params['lang']);
+		}
 
 		$params['wpfts_is_force'] = 1;	// Force WPFTS
 		$params['wpfts_source'] = 'wpfts_autocomplete_ajax';	// Specify that we are calling from here
+
+		$limit = $wpfts_core ? intval($wpfts_core->get_option('autocomplete_limit')) : 10;
+		if (($limit < 1) || ($limit > 50)) {
+			$limit = 10;
+		}
+		$params['posts_per_page'] = $limit;
+		$params['no_found_rows'] = true;
 
 		if (strlen($widget_code) > 0) {
 			$params['wpfts_wdgt'] = $widget_code;
@@ -482,8 +552,6 @@ function wpfts_autocomplete_proc()
 		}
 
 		$loop = new WP_Query($params);
-		
-		global $wpfts_core;
 	
 		if ($wpfts_core) {
 			$wpfts_core->ForceSmartExcerpts($s);
@@ -502,11 +570,6 @@ function wpfts_autocomplete_proc()
 
 	echo wpfts_json_encode($res);
 	exit();
-}
-
-add_action('plugins_loaded', 'wpfts_load_plugin_textdomain');
-function wpfts_load_plugin_textdomain() {
-	load_plugin_textdomain( 'fulltext-search', false, dirname(plugin_basename(__FILE__)).'/languages/');
 }
 
 function wpfts_plugin_links($links, $file)
@@ -576,8 +639,8 @@ function wpfts_enqueues($hook_suffix)
 	$wpfts_core->set_is_settings_page();
 
 	wp_enqueue_style('wpfts_style', plugins_url('style/wpfts_main.css', __FILE__), array(), $version);
-	wp_enqueue_script('wpfts_script', plugins_url('js/wpfts_script.js', __FILE__), array(), $version);
-	wp_enqueue_script('wpfts_jsonview', plugins_url('js/jsonview.js', __FILE__), array(), $version);
+	wp_enqueue_script('wpfts_script', plugins_url('js/wpfts_script.js', __FILE__), array(), $version, true);
+	wp_enqueue_script('wpfts_jsonview', plugins_url('js/jsonview.js', __FILE__), array(), $version, true);
 
 	if ($wpfts_core->is_wpfts_settings_page) {
 
@@ -586,11 +649,11 @@ function wpfts_enqueues($hook_suffix)
 		wp_enqueue_style('wpfts_style_fa', plugins_url('style/fontawesome-all.css', __FILE__), array(), $version);
 		wp_enqueue_style('wpfts_style_s2', plugins_url('style/select2/select2.min.css', __FILE__), array(), $version);
 
-		wp_enqueue_script('wpfts_script_bs', plugins_url('js/bootstrap.min.js', __FILE__), array('jquery'), $version);
-		wp_enqueue_script('wpfts_script_ui', plugins_url('js/ui_main.js', __FILE__), array(), $version);
-		wp_enqueue_script('wpfts_script_s2', plugins_url('js/select2/select2.min.js', __FILE__), array(), $version);
+		wp_enqueue_script('wpfts_script_bs', plugins_url('js/bootstrap.min.js', __FILE__), array('jquery'), $version, true);
+		wp_enqueue_script('wpfts_script_ui', plugins_url('js/ui_main.js', __FILE__), array(), $version, true);
+		wp_enqueue_script('wpfts_script_s2', plugins_url('js/select2/select2.min.js', __FILE__), array(), $version, true);
 	
-		wp_enqueue_script('wpfts_ace_script', plugins_url('classes/ace/ace.js', __FILE__), array('jquery'), $version);
+		wp_enqueue_script('wpfts_ace_script', plugins_url('classes/ace/ace.js', __FILE__), array('jquery'), $version, true);
 
 		// Remove welcome_message
 		$wpfts_core->set_option('is_welcome_message', '');
@@ -622,7 +685,7 @@ function wpfts_option_page()
 	}
 
 	/* Make sure post was from this page */
-	if (isset($_POST) && (count($_POST) > 0)) {
+	if (isset($_SERVER['REQUEST_METHOD']) && ('POST' === strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD']))))) {
 		check_admin_referer('wpfts-options');
 	}
 
@@ -647,56 +710,82 @@ function WPFTS_Get_Widget_List()
  * 
  * We need to reindex the post by this action
  */
-function wpfts_save_post_action($post_id)
+function wpfts_save_post_action($post_id, $post = null, $update = null)
 {
+	if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
+		return;
+	}
+
+	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+		return;
+	}
+
+	if (!apply_filters('wpfts_should_reindex_post', true, $post_id, $post)) {
+		return;
+	}
+
 	wpfts_post_reindex($post_id);
 }
 add_action('save_post', 'wpfts_save_post_action', 99);
 
 /**
  * Called when any post/page/etc was deleted
- * 
+ *
  * We need to delete the post from the index by this action
  */
 function wpfts_deleted_post_action($post_id)
 {
-	wpfts_post_reindex($post_id);
+	wpfts_post_reindex($post_id, true);
 }
 add_action('after_delete_post', 'wpfts_deleted_post_action', 99);
 
 function wpfts_post_reindex($post_id, $is_force_remove = false, $is_raw_cache_remove = false)
 {
 	global $wpfts_core;
-	
+
+	if (!$wpfts_core) {
+		return false;
+	}
+
 	if ($is_raw_cache_remove) {
 		$wpfts_core->removeRawCache($post_id);
 	}
 
-	// First, let's force sync
-	$wpfts_core->MakePostsSync(true);
+	$post = get_post($post_id);
 
-	// Make some magic to force this post indexed first
-	$q = 'update `wpftsi_index` set force_rebuild = 2 where tid = "'.addslashes($post_id).'" and tsrc = "wp_posts"';
-	$wpfts_core->db->query($q);
+	if ($is_force_remove || !$post) {
+		// Delete the index record (and its docs/vectors) for this post only.
+		$wpfts_core->_index->removeIndexRecordForPost($post_id);
+	} else {
+		// Update only this post's index record. Do not run a full posts sync here:
+		// it scans the whole index/posts table on every save and locks both tables.
+		$wpfts_core->_index->updateIndexRecordForPost(
+			$post_id,
+			$post->post_modified,
+			$wpfts_core->get_option('rebuild_time'),
+			time(),
+			2
+		);
 
-	// Force status recalculation
-	$wpfts_core->set_option('status_next_ts', 0);
-
-	// Break current loop to start over
-	$wpfts_core->set_option('is_break_loop', 1);
-
-	// Ensure loop is starting
-	$wpfts_core->CallIndexerStartNoBlocking();
-
-	/*
-	$res = $wpfts_core->reindex_post($post_id, $is_force_remove);
-	
-	if (!$res) {
-		trigger_error('Error reindex post ID='.$post_id.': '.$wpfts_core->index_error, E_USER_NOTICE);
-		return false;
+		$wpfts_core->set_option('is_indexer_work_pending', 1);
 	}
-	*/
-	
+
+	// While the indexer is paused, just keep the row marked. The normal cron
+	// pass will pick it up after the pause is removed.
+	if (intval($wpfts_core->get_option('is_pause')) > 0) {
+		return true;
+	}
+
+	// Make the next status check see the new force_rebuild row, but avoid
+	// writing this option on every save in a bulk import.
+	if (intval($wpfts_core->get_option('status_next_ts')) > 0) {
+		$wpfts_core->set_option('status_next_ts', 0);
+	}
+
+	// Start the HTTP loop if it is not already running. The DB timestamp check
+	// coalesces hundreds of saves during an import into a single loop start.
+	$wpfts_core->maybeStartIndexerHttp(60);
+
 	return true;
 }
 

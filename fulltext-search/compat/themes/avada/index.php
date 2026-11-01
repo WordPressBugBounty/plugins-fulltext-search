@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**
  * Compatibility patch for Avada theme and Fusion builder (the part of the Avada theme)
  */

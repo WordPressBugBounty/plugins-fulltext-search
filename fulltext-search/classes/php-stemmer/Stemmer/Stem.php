@@ -2,6 +2,9 @@
 
 namespace Wamania\Snowball\Stemmer;
 
+defined('ABSPATH') || exit;
+
+
 use voku\helper\UTF8;
 
 abstract class Stem implements Stemmer

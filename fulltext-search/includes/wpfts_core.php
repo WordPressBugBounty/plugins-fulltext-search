@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**  
  * Copyright 2013-2024 Epsiloncool
  *
@@ -105,7 +108,7 @@ class WPFTS_Core
 		$upd = wp_upload_dir();
 
 		if (isset($upd['basedir'])) {
-			$hh = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'no_server_addr');
+			$hh = isset($_SERVER['SERVER_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_ADDR'])) : (isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : 'no_server_addr');
 			$nk = defined('NONCE_KEY') && (strlen(NONCE_KEY) > 10) ? NONCE_KEY : sha1('_domain_'.home_url().'_key_');
 			$this->_log_file = $upd['basedir'].'/wpfts_logs/'.date('Ymd', current_time('timestamp')).'_'.md5(home_url().$hh.$nk).'.txt';
 			if (!file_exists(dirname($this->_log_file))) {
@@ -378,6 +381,10 @@ class WPFTS_Core
 
 	public function admin_notices()
 	{
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
 		$is_all_great = true;
 
 		if ((strlen($this->get_option('is_welcome_message')) > 0) && (!$this->is_wpfts_settings_page)) {
@@ -426,9 +433,9 @@ class WPFTS_Core
 				$is_all_great = false;
 
 				$s .= '<p>
-				<a href="#" class="button button-primary wpfts_btn_try_updatedb" data-nonce="'.esc_html(wp_create_nonce( 'try_updatedb' )).'">'.esc_html(__('Try Again', 'fulltext-search')).'</a>
+				<a href="#" class="button button-primary wpfts_btn_try_updatedb" data-nonce="'.esc_attr(wp_create_nonce( 'try_updatedb' )).'">'.esc_html(__('Try Again', 'fulltext-search')).'</a>
 				<a href="admin.php?page=wpfts-options-support" class="button button-secondary">'.esc_html(__('Contact Support', 'fulltext-search')).'</a>
-				<a href="#" class="wpfts_btn_rebuild" data-confirm="'.esc_attr(__('This action will completely rebuild the search index, which may take some time. Are you sure?', 'fulltext-search')).'" data-rebuild_nonce="'.esc_html(wp_create_nonce('index_rebuild_nonce')).'">'.esc_html(__('Rebuild Index', 'fulltext-search')).'</a>
+				<a href="#" class="wpfts_btn_rebuild" data-confirm="'.esc_attr(__('This action will completely rebuild the search index, which may take some time. Are you sure?', 'fulltext-search')).'" data-rebuild_nonce="'.esc_attr(wp_create_nonce('index_rebuild_nonce')).'">'.esc_html(__('Rebuild Index', 'fulltext-search')).'</a>
 			</p>';
 
 				// UpdateDB failed message
@@ -442,7 +449,7 @@ class WPFTS_Core
 
 			if ($this->is_wpfts_settings_page) {
 				// DB update required message (for internal pages)
-				$s = __('<b style="color: red;">The plugin\'s database requires update.</b><br>It is necessary to rebuild the index to ensure the correct operation of the search engine. This may take some time.<br><br>Click <a href="#" class="btn_notify_start_indexing" data-rebuild_nonce="'.esc_html(wp_create_nonce('index_rebuild_nonce')).'">here</a> to rebuild the search index now.', 'fulltext-search');
+				$s = __('<b style="color: red;">The plugin\'s database requires update.</b><br>It is necessary to rebuild the index to ensure the correct operation of the search engine. This may take some time.<br><br>Click <a href="#" class="btn_notify_start_indexing" data-rebuild_nonce="'.esc_attr(wp_create_nonce('index_rebuild_nonce')).'">here</a> to rebuild the search index now.', 'fulltext-search');
 
 				$this->output_admin_notice($s, 'notice notice-warning wpfts-notice', 'db_update');
 			} else {
@@ -477,7 +484,15 @@ class WPFTS_Core
 
 			$s = $this->get_option('reqreset_message');
 			if (strlen($s) > 0) {
-				// ReqReset message
+				// ReqReset message. The nonce must belong to the current administrator,
+				// so it is generated at render time instead of being stored in the option.
+				$s = preg_replace(
+					'/data-upgradeindex_nonce="[^"]*"/',
+					'data-upgradeindex_nonce="'.esc_attr(wp_create_nonce('upgradeindex_nonce')).'"',
+					$s,
+					1
+				);
+
 				$this->output_admin_notice($s, 'notice notice-warning is-dismissible wpfts-notice', 'reqreset_message');
 			}
 		}
@@ -680,7 +695,8 @@ class WPFTS_Core
 			wp_die(esc_html(__( "This plugin requires WordPress 3.0 or newer. Please update your WordPress installation to activate this plugin.", 'fulltext-search' )));
 		}
 
-		if ((isset($_GET['action'])) && ($_GET['action'] == 'error_scrape')) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only activation error view.
+		if ((isset($_GET['action'])) && (sanitize_key(wp_unslash($_GET['action'])) == 'error_scrape')) {
 			// Showing error
 			$this->log('Activating plugin, show error: '.$this->get_option('activation_error'));
 
@@ -704,16 +720,22 @@ class WPFTS_Core
 		}
 	}
 	
-	public function removeCronIndexerTask()
+	public function removeCronIndexerTask($keep_log_clean = false)
 	{
 		wp_clear_scheduled_hook('wpfts_indexer_event');
-		wp_clear_scheduled_hook('wpfts_log_clean');
+		wp_clear_scheduled_hook('wpfts_indexer_continue');
+
+		if (!$keep_log_clean) {
+			wp_clear_scheduled_hook('wpfts_log_clean');
+		}
 	}
 
 	public function installCronIndexerTask()
 	{
-		if (!wp_next_scheduled('wpfts_indexer_event')) {
-			wp_schedule_event( time(), 'wpfts_each_minute', 'wpfts_indexer_event');
+		if (intval($this->get_option('is_pause')) <= 0) {
+			if (!wp_next_scheduled('wpfts_indexer_event')) {
+				wp_schedule_event( time(), 'wpfts_each_minute', 'wpfts_indexer_event');
+			}
 		}
 		if (!wp_next_scheduled('wpfts_log_clean')) {
 			wp_schedule_event( time(), 'wpfts_each_hour', 'wpfts_log_clean');
@@ -794,6 +816,7 @@ class WPFTS_Core
 			'is_welcome_message' => '',
 			'current_db_version' => '',
 			'current_cb_version' => '',
+			'internal_secret' => '',
 			'is_db_outdated' => 0,
 			'mainsearch_orderby' => 'relevance',
 			'mainsearch_order' => 'DESC',
@@ -803,6 +826,9 @@ class WPFTS_Core
 			'is_show_score' => 1,
 			'is_not_found_words' => 1,
 			'optimal_length' => 300,
+			'autocomplete_limit' => 10,
+			'autocomplete_minlength' => 3,
+			'autocomplete_delay' => 500,
 			'custom_se_css' => '_get_css_file_',
 			'sentence_styles' => serialize(array(
 				array(
@@ -860,6 +886,8 @@ class WPFTS_Core
 			'status_next_ts' => 0,
 			'status_cache' => '',
 			'last_indexerstart_ts' => 0,
+			'is_indexer_loop_active' => 0,
+			'is_indexer_work_pending' => 1,
 			'irules_status_next_ts' => 0,
 			'irules_status_cache' => '',
 
@@ -1219,6 +1247,10 @@ class WPFTS_Core
 
 	public function FeatureDetectorAfterInitAdmin()
 	{
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
 		// Detect records to be reset
 		// Create hash for current ruleset and compare with previous one
 		$hash = $this->createIRulesHash();
@@ -1238,7 +1270,7 @@ class WPFTS_Core
 					$notify_text = '<p><b>WP Fast Total Search index:</b> '.sprintf(esc_html(__('The indexing rule set has changed and now %s records do not match the rules. Run a partial index update (this may take a while) or check the current ruleset.', 'fulltext-search')), '<b>'.$n_req_reset.'</b>').'</p>';
 
 					$notify_text .= '<p>
-        				<a href="#" class="button button-primary wpfts_btn_upgrade_index"  data-upgradeindex_nonce="'.esc_html(wp_create_nonce('upgradeindex_nonce')).'">'.esc_html(__('Upgrade Index', 'fulltext-search')).'</a>
+				<a href="#" class="button button-primary wpfts_btn_upgrade_index"  data-upgradeindex_nonce="">'.esc_html(__('Upgrade Index', 'fulltext-search')).'</a>
         				<a href="admin.php?page=wpfts-options-indexing-engine" class="button button-secondary">'.esc_html(__('Check Rules', 'fulltext-search')).'</a>
 						<span style="text-decoration: underline;color: #888;cursor: pointer;" class="dismiss-link">'.esc_html(__("Hide for 1 day", 'fulltext-search')).'</span>
 					</p>';
@@ -1917,6 +1949,10 @@ class WPFTS_Core
 
 	public function ajax_ping()
 	{
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => __('Forbidden', 'fulltext-search')), 403);
+		}
+
 		$t0 = microtime(true);
 		
 		$jx = new WPFTS_jxResponse();
@@ -1951,22 +1987,30 @@ class WPFTS_Core
 
 	public function SetPause($is_pause = true, $is_start_indexer = false)
 	{
+		delete_transient('wpfts_indexer_http_attempt');
+		$this->set_option('is_indexer_loop_active', 0);
+
 		if ($is_pause) {
 			// Set pause mode
 			$this->set_option('is_pause', 1);
 			$this->set_option('is_break_loop', 1);
+
+			// Do not wake the site up every minute while indexing is paused.
+			$this->removeCronIndexerTask(true);
 
 		} else {
 			// Remove pause mode
 			$this->set_option('is_pause', 0);
 			$this->set_option('ts_series', '');	// Reset est. time
 			$this->set_option('last_sync_ts', 0);
+
+			$this->installCronIndexerTask();
 		}
 
 		$this->set_option('status_next_ts', 0);
 
 		if ((!$is_pause) && $is_start_indexer) {
-			// Start loop
+			// Start loop through the HTTP mechanism
 			$this->CallIndexerStartNoBlocking();
 		}
 
@@ -2080,6 +2124,10 @@ class WPFTS_Core
 
 	function ajax_hide_notification()
 	{
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => __('Forbidden', 'fulltext-search')), 403);
+		}
+
 		$jx = new WPFTS_jxResponse();
 		
 		if (($data = $jx->getData()) !== false) {
@@ -2835,51 +2883,119 @@ class WPFTS_Core
 	public function ajax_force_index()
 	{
 		/**
-		 * Message to the security team:
-		 * 
-		 * This AJAX call must NOT be protected by an admin check like "current_user_can('manage_options')".
-		 * It can be triggered via an internal loop call from CallIndexerStartNoBlocking() method which 
-		 * does not send Auth cookies!
-		 * 
-		 * However, it sends the correct _nonce via POST.
-		 * 
-		 * BTW nothing wrong if somebody else calls IndexerStart(), this method is protected by the semaphore
-		 * so consecutive or frequent calls can't make any damage to the website.
+		 * A nonce is a CSRF token, not an authorization check. The internal
+		 * indexer loopback has no auth cookies, so it is authorized by a
+		 * server-side HMAC signature instead (see CallIndexerStartNoBlocking()).
+		 * Every other caller must be an administrator.
 		 */
+		$is_internal = false;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- internal loopback is authenticated by HMAC, not a nonce.
+		if (isset($_POST['_wpfts_ts'], $_POST['_wpfts_sig'])) {
+			$wpfts_ts = sanitize_text_field(wp_unslash($_POST['_wpfts_ts']));
+			$wpfts_sig = sanitize_text_field(wp_unslash($_POST['_wpfts_sig']));
+			$is_internal = $this->verify_internal_request_signature($wpfts_ts, $wpfts_sig);
+		}
+
+		if (!$is_internal && !current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => __('Forbidden', 'fulltext-search')), 403);
+		}
+
 		$jx = new WPFTS_jxResponse();
 
-		$is_post = false;
-		if ((($data = $jx->getData()) !== false) || isset($_POST['_nonce'])) {
-			$nonce = '';
-			if (isset($data['_nonce'])) {
-				$nonce = $data['_nonce'];
+		if ($is_internal) {
+			// We should reset respective method counter to let Core know this method is OKAY
+			$use_method = intval($this->get_option('n_callback_method_used', true));
+			if ($use_method == 1) {
+				$this->set_option('n_callback_method1', 0);
 			} else {
-				if (isset($_POST['_nonce'])) {
-					// Internal loop call
-					$nonce = $_POST['_nonce'];
-					$is_post = true;
-				}
+				$this->set_option('n_callback_method2', 0);
 			}
 
-			if (wp_verify_nonce($nonce, 'forceindex_nonce')) {
-				if ($is_post) {
-					// We should reset respective method counter to let Core know this method is OKAY
-					$use_method = intval($this->get_option('n_callback_method_used', true));
-					if ($use_method == 1) {
-						$this->set_option('n_callback_method1', 0);
-					} else {
-						$this->set_option('n_callback_method2', 0);
-					}
-				}
+			$this->IndexerStart();
+			$jx->variable('code', 0);
+		} else {
+			$data = $jx->getData();
 
+			$nonce = '';
+			if (is_array($data) && isset($data['_nonce'])) {
+				$nonce = is_string($data['_nonce']) ? sanitize_text_field($data['_nonce']) : '';
+			} elseif (isset($_POST['_nonce'])) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified immediately below.
+				$nonce = sanitize_text_field(wp_unslash($_POST['_nonce']));
+			}
+
+			$nonce = is_string($nonce) ? $nonce : '';
+
+			if (wp_verify_nonce($nonce, 'forceindex_nonce')) {
 				$this->IndexerStart();
 				$jx->variable('code', 0);
 			} else {
 				$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
 			}
 		}
+
 		$jx->echoJSON();
 		wp_die();
+	}
+
+	public function get_internal_secret($create = true)
+	{
+		$secret = $this->get_option('internal_secret');
+
+		if (!is_string($secret) || strlen($secret) < 32) {
+			if (!$create) {
+				return '';
+			}
+
+			if (function_exists('random_bytes')) {
+				try {
+					$secret = bin2hex(random_bytes(32));
+				} catch (Exception $e) {
+					$secret = wp_generate_password(64, false, false);
+				}
+			} else {
+				$secret = wp_generate_password(64, false, false);
+			}
+
+			$this->set_option('internal_secret', $secret);
+		}
+
+		return $secret;
+	}
+
+	public function get_internal_request_signature($ts = null)
+	{
+		if ($ts === null) {
+			$ts = time();
+		}
+
+		$ts = intval($ts);
+
+		return array(
+			'_wpfts_ts' => $ts,
+			'_wpfts_sig' => hash_hmac('sha256', 'wpfts_indexer|'.$ts, $this->get_internal_secret()),
+		);
+	}
+
+	public function verify_internal_request_signature($ts, $sig)
+	{
+		if (!is_scalar($ts) || !is_string($sig) || strlen($sig) !== 64) {
+			return false;
+		}
+
+		$ts = intval($ts);
+		if ($ts <= 0 || abs(time() - $ts) > 300) {
+			return false;
+		}
+
+		$secret = $this->get_internal_secret(false);
+		if (!is_string($secret) || strlen($secret) < 32) {
+			return false;
+		}
+
+		$calc = hash_hmac('sha256', 'wpfts_indexer|'.$ts, $secret);
+
+		return hash_equals($calc, $sig);
 	}
 
 	function send_async_local_self_request($url, $body_data = [])
@@ -2891,8 +3007,13 @@ class WPFTS_Core
     	];
 
 		// Here we try to use "Host" header hack to reach local URL
-		$local_host = $_SERVER['SERVER_ADDR'];
-		$local_port = $_SERVER['SERVER_PORT'];
+		$local_host = (!empty($_SERVER['SERVER_ADDR'])) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_ADDR'])) : '127.0.0.1';
+
+		if (!empty($_SERVER['SERVER_PORT'])) {
+			$local_port = intval($_SERVER['SERVER_PORT']);
+		} else {
+			$local_port = (parse_url(home_url(), PHP_URL_SCHEME) === 'https') ? 443 : 80;
+		}
 
     	$parsed_url = parse_url($url);
     	if (!isset($parsed_url['host'])) {
@@ -2965,10 +3086,10 @@ class WPFTS_Core
 		}
 		$this->set_option('n_callback_method_used', $use_method);
 
-		$data = [
-			'action' => 'wpfts_force_index',
-			'_nonce' => wp_create_nonce('forceindex_nonce'),
-		];
+		$data = array_merge(
+			array('action' => 'wpfts_force_index'),
+			$this->get_internal_request_signature()
+		);
 
 		if ($use_method == 2) {
 			$wpres = $this->send_async_local_self_request($url, $data);
@@ -2983,6 +3104,70 @@ class WPFTS_Core
 		}
 		
 		return $wpres;
+	}
+
+	/**
+	 * Start the HTTP indexer loop only when the DB flag says it is not alive.
+	 *
+	 * The HTTP loop is the primary indexing mechanism: it does not depend on
+	 * WP-Cron or on a server-side cron job. last_indexerstart_ts is the DB flag
+	 * that shows the last time a loop step checked in; if it is fresh, another
+	 * HTTP request would only duplicate work.
+	 *
+	 * @return bool|null True if a loop is alive/started, false if the HTTP
+	 *                   request failed, null if indexing is paused.
+	 */
+	public function maybeStartIndexerHttp($max_age = 60, $allow_direct_fallback = false, $ignore_attempt_lock = false)
+	{
+		if (intval($this->get_option('is_pause')) > 0) {
+			return null;
+		}
+
+		$last_start_ts = intval($this->get_option('last_indexerstart_ts'));
+		$is_active = intval($this->get_option('is_indexer_loop_active'));
+		$work_pending = intval($this->get_option('is_indexer_work_pending'));
+		$max_age = max(1, intval($max_age));
+
+		if ($is_active && ($last_start_ts > 0) && ((time() - $last_start_ts) < $max_age)) {
+			// The HTTP loop has checked in recently; do not start a second one.
+			return true;
+		}
+
+		if (!$work_pending) {
+			// Nothing to index and no loop is running; stay quiet.
+			if ($is_active && (($last_start_ts <= 0) || ((time() - $last_start_ts) >= $max_age))) {
+				$this->set_option('is_indexer_loop_active', 0);
+			}
+			return true;
+		}
+
+		if ($is_active && $allow_direct_fallback) {
+			// The loop was marked active but stopped checking in (process died,
+			// PHP-FPM killed the request, etc.). Recover with one direct step;
+			// it will continue through the HTTP loop again.
+			$this->IndexerStart();
+			return true;
+		}
+
+		// Avoid hammering the self-request on every save during a bulk import
+		// when the self-request itself is failing.
+		if (!$ignore_attempt_lock && get_transient('wpfts_indexer_http_attempt')) {
+			return true;
+		}
+		set_transient('wpfts_indexer_http_attempt', 1, 15);
+
+		// Optimistically mark the loop as active so parallel saves do not start
+		// another one before the self-request checks in.
+		$this->set_option('is_indexer_loop_active', 1);
+
+		$res = $this->CallIndexerStartNoBlocking();
+
+		if (is_wp_error($res) || ($res === false)) {
+			$this->set_option('is_indexer_loop_active', 0);
+			return false;
+		}
+
+		return true;
 	}
 
 	public function MakePostsSync($is_force_sync = false)
@@ -3004,7 +3189,11 @@ class WPFTS_Core
 					(wi.force_rebuild = 0) and 
 					((p.ID is null) or (wi.tdt != p.post_modified))
 				';
-			$this->db->query($q);
+			$affected = $this->db->query($q);
+			if ($affected > 0) {
+				$this->set_option('is_indexer_work_pending', 1);
+				$this->set_option('status_next_ts', 0);
+			}
 
 			// Find post records that have no index records yet and initialize them
 			$start_from = 0;
@@ -3034,7 +3223,11 @@ class WPFTS_Core
 
 					if (count($vv) > 0) {
 						$q = 'insert into `'.$idx.'index` (`tid`, `tsrc`, `tdt`, `build_time`, `update_dt`, `force_rebuild`, `locked_dt`) values '.implode(', ', $vv);
-						$this->db->query($q);
+						$affected = $this->db->query($q);
+						if ($affected > 0) {
+							$this->set_option('is_indexer_work_pending', 1);
+							$this->set_option('status_next_ts', 0);
+						}
 					}
 
 					if (count($r2) >= $chunk_length) {
@@ -3679,19 +3872,20 @@ exit();
 			$this->_flare->SendFire(array('pt' => 'indexer_cron'));
 		}
 		
-		// Store last indexerStart ts for further usage
-		// For example, we will prevent CallIndexerStartNoBlocking() from the wpfts_ping (get status)
-		// in case IndexerStart was called from somewhere in 1,5 minutes or less
-		$this->set_option('last_indexerstart_ts', time());
-
 		$is_pause = intval($this->get_option('is_pause', true));
 		if ($is_pause > 0) {
-			// Indexer loop is on pause. Exit silently.
+			// Indexer loop is on pause. Exit silently without writing options.
 			if ($this->_dev_debug) {
 				$this->_flare->SendFire(array('pt' => 'indexer_on_pause'));
 			}
 			return;
 		}
+
+		// Store last indexerStart ts for further usage
+		// For example, we will prevent CallIndexerStartNoBlocking() from the wpfts_ping (get status)
+		// in case IndexerStart was called from somewhere in 1,5 minutes or less
+		$this->set_option('last_indexerstart_ts', time());
+		$this->set_option('is_indexer_loop_active', 1);
 
 		// Check the semaphore
 		$sem = new WPFTS_Semaphore('inx_cron');
@@ -3728,8 +3922,21 @@ exit();
 		$sem->Leave();
 
 		if ($is_useful) {
-			// In case this pass was useful (we did something), try to run the task again!
-			$this->CallIndexerStartNoBlocking();
+			// There may be more work in the next step.
+			$this->set_option('is_indexer_work_pending', 1);
+
+			// In case this pass was useful (we did something), run the next
+			// step through the HTTP loop. This is the primary mechanism and
+			// must remain independent of WP-Cron/server cron.
+			$res = $this->CallIndexerStartNoBlocking();
+			if (is_wp_error($res) || ($res === false)) {
+				// The self-request failed; let the cron/watchdog restart it.
+				$this->set_option('is_indexer_loop_active', 0);
+			}
+		} else {
+			// Nothing left to do: this loop is finished.
+			$this->set_option('is_indexer_work_pending', 0);
+			$this->set_option('is_indexer_loop_active', 0);
 		}
 	}
 }

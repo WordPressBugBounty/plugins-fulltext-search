@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**  
  * Copyright 2013-2024 Epsiloncool
  *
@@ -84,9 +87,15 @@ class WPFTS_jxResponse
 	
 	function getData()
 	{
-		if ((isset($_POST['__xr'])) && ($_POST['__xr'] == 1)) {
-			$post = isset($_POST['z']) ? json_decode(stripslashes($_POST['z']), true) : array();
-			return $post;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- this is a request parser; the AJAX handlers verify nonces.
+		if ((isset($_POST['__xr'])) && (sanitize_text_field(wp_unslash($_POST['__xr'])) === '1')) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- request parser; JSON is decoded and validated by AJAX handlers.
+			$raw = isset($_POST['z']) ? wp_unslash($_POST['z']) : '';
+			if (!is_string($raw) || ($raw === '')) {
+				return array();
+			}
+			$post = json_decode($raw, true);
+			return is_array($post) ? $post : array();
 		} else {
 			return false;
 		}

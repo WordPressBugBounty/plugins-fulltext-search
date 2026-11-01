@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 return array(
 	'text' => __('<ul><li>Big update: lots of functions was moved from the Pro version to the Free WPFTS Version</li>
 					<li>Some interface bugs were fixed</li>

@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**  
  * Copyright 2013-2024 Epsiloncool
  *
@@ -172,14 +175,22 @@ class WPFTS_QueryLog
 		$sts = $this->GetValidSettings();
 
 		// Detect set_props mode
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified immediately below.
 		if (isset($_POST['set_props'])) {
 
-			if (!wp_verify_nonce(isset($_POST['settings_key']) ? $_POST['settings_key'] : '', 'qlog_settings_nonce')) {
+			$settings_key = isset($_POST['settings_key']) ? sanitize_text_field(wp_unslash($_POST['settings_key'])) : '';
+			if (!wp_verify_nonce($settings_key, 'qlog_settings_nonce')) {
 				echo '';
 				wp_die();
 			}
 
-			$set_props = json_decode(stripslashes($_POST['set_props']), true);
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is decoded and validated below.
+			$set_props_raw = isset($_POST['set_props']) ? wp_unslash($_POST['set_props']) : '';
+			$set_props = json_decode((string) $set_props_raw, true);
+			if (!is_array($set_props)) {
+				echo '';
+				wp_die();
+			}
 
 			$is_updated = false;
 			foreach ($set_props as $k => $d) {
@@ -265,14 +276,22 @@ class WPFTS_QueryLog
 		$sts = $this->GetValidSettings();
 
 		// Detect set_props mode
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified immediately below.
 		if (isset($_POST['set_props'])) {
 
-			if (!wp_verify_nonce(isset($_POST['settings_key']) ? $_POST['settings_key'] : '', 'qlog_settings_nonce')) {
+			$settings_key = isset($_POST['settings_key']) ? sanitize_text_field(wp_unslash($_POST['settings_key'])) : '';
+			if (!wp_verify_nonce($settings_key, 'qlog_settings_nonce')) {
 				echo '';
 				wp_die();
 			}
 
-			$set_props = json_decode(stripslashes($_POST['set_props']), true);
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is decoded and validated below.
+			$set_props_raw = isset($_POST['set_props']) ? wp_unslash($_POST['set_props']) : '';
+			$set_props = json_decode((string) $set_props_raw, true);
+			if (!is_array($set_props)) {
+				echo '';
+				wp_die();
+			}
 
 			$is_updated = false;
 			foreach ($set_props as $k => $d) {
@@ -323,11 +342,13 @@ class WPFTS_QueryLog
 			'code' => -1,
 			'error' => 'Wrong input',
 		);
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only log details; capability checked above.
 		if (isset($_POST['qlog_id'])) {
 
 			$idx = $wpfts_core->dbprefix();
 
-			$qlog_id = isset($_POST['qlog_id']) ? intval($_POST['qlog_id']) : 0;
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only log details; capability checked above.
+			$qlog_id = isset($_POST['qlog_id']) ? absint(wp_unslash($_POST['qlog_id'])) : 0;
 
 			$q = 'select 
 					`id`, 
@@ -419,13 +440,13 @@ class WPFTS_QueryLog
 
 	public function GetRemoteIP()
 	{
-		$ip = $_SERVER['REMOTE_ADDR'];
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
 		if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
 			//check ip from share internet
-			$ip = $_SERVER['HTTP_CLIENT_IP'];
+			$ip = sanitize_text_field(wp_unslash($_SERVER['HTTP_CLIENT_IP']));
 		} elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
 			//to check ip is pass from proxy
-			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+			$ip = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
 		}
 
 		return $ip;
@@ -550,7 +571,8 @@ class WPFTS_QueryLog
 					$preset_ident = $wpfts_core->GetPresetBySearchType($search_type);
 				}
 
-				$wgt_ident = $wpq->get('wpfts_wdgt', isset($_GET['wpfts_wdgt']) ? $_GET['wpfts_wdgt'] : '');
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only widget identifier.
+				$wgt_ident = $wpq->get('wpfts_wdgt', isset($_GET['wpfts_wdgt']) ? sanitize_text_field(wp_unslash($_GET['wpfts_wdgt'])) : '');
 				$wpq->wpftsi_session['wpfts_wdgt'] = $wgt_ident;
 				$ws = $wpfts_core->GetWidgetPresets();
 				if ((strlen($wgt_ident) > 0) && (isset($ws[$wgt_ident]))) {

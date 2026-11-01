@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 require_once dirname(__FILE__).'/renderer.php';
 
 add_action('init', function () 

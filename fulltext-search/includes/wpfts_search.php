@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**  
  * Copyright 2013-2024 Epsiloncool
  *
@@ -823,7 +826,9 @@ class WPFTS_Search
 		if ((!empty($q['s'])) && ($issearch)) {
 			
 			$qs = stripslashes($q['s']);
-			if ( empty( $_GET['s'] ) && $wpq->is_main_query() ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only search query.
+			$get_s = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+			if ( empty( $get_s ) && $wpq->is_main_query() ) {
 				$qs = urldecode( $qs );
 			}
 

@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**
  * Copyright 2013-2024 Epsiloncool
  *
@@ -30,6 +33,13 @@
 
 class WPFTS_Admin_Actions
 {
+	private function require_manage_options()
+	{
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => __('Forbidden', 'fulltext-search')), 403);
+		}
+	}
+
 	public function sandboxPaginator($current_page, $total_items, $n_perpage) 
 	{
 		$maxpage = ceil($total_items / $n_perpage);
@@ -61,6 +71,8 @@ class WPFTS_Admin_Actions
 
 	public function ajax_submit_testpost()
 	{
+		$this->require_manage_options();
+
 		global $wpfts_core;
 
 		$jx = new WPFTS_jxResponse();
@@ -183,6 +195,8 @@ class WPFTS_Admin_Actions
 	
 	public function ajax_submit_testsearch()
 	{
+		$this->require_manage_options();
+
 		global $wpfts_core;
 
 		$jx = new WPFTS_jxResponse();
@@ -355,6 +369,8 @@ class WPFTS_Admin_Actions
 
 	public function ajax_submit_rebuild()
 	{
+		$this->require_manage_options();
+
 		global $wpfts_core;
 
 		$jx = new WPFTS_jxResponse();
@@ -386,6 +402,8 @@ class WPFTS_Admin_Actions
 
 	public function ajax_upgradeindex()
 	{
+		$this->require_manage_options();
+
 		global $wpfts_core;
 
 		$jx = new WPFTS_jxResponse();
@@ -438,6 +456,8 @@ class WPFTS_Admin_Actions
 
 	public function ajax_add_user_irule()
 	{
+		$this->require_manage_options();
+
 		global $wpfts_core;
 
 		$jx = new WPFTS_jxResponse();
@@ -777,8 +797,55 @@ class WPFTS_Admin_Actions
 		return false;
 	}
 
+	public function process_form_autocomplete($jx, $data)
+	{
+		global $wpfts_core;
+
+		$nonce = isset($data['wpfts_options-nonce_autocomplete']) ? $data['wpfts_options-nonce_autocomplete'] : '';
+		if (!wp_verify_nonce($nonce, 'wpfts_options_autocomplete')) {
+			$jx->alert(__('The form is outdated. Please refresh the page and try again.', 'fulltext-search'));
+			return false;
+		}
+
+		$e = array();
+
+		$limit = isset($data['wpfts_autocomplete_limit']) ? intval($data['wpfts_autocomplete_limit']) : 10;
+		if (($limit < 1) || ($limit > 50)) {
+			$e[] = array('autocomplete_limit', __('Maximum suggestions should be a number from 1 to 50', 'fulltext-search'));
+		}
+
+		$minlength = isset($data['wpfts_autocomplete_minlength']) ? intval($data['wpfts_autocomplete_minlength']) : 3;
+		if (($minlength < 1) || ($minlength > 10)) {
+			$e[] = array('autocomplete_minlength', __('Minimum query length should be a number from 1 to 10', 'fulltext-search'));
+		}
+
+		$delay = isset($data['wpfts_autocomplete_delay']) ? intval($data['wpfts_autocomplete_delay']) : 500;
+		if (($delay < 0) || ($delay > 5000)) {
+			$e[] = array('autocomplete_delay', __('Debounce delay should be a number from 0 to 5000', 'fulltext-search'));
+		}
+
+		if (count($e) > 0) {
+			$z = array();
+			foreach ($e as $dd) {
+				$z[] = '* '.$dd[1];
+			}
+			$txt = __('There are errors', 'fulltext-search').":\n\n".implode("\n", $z);
+			$jx->alert($txt);
+			return false;
+		}
+
+		$wpfts_core->set_option('autocomplete_limit', $limit);
+		$wpfts_core->set_option('autocomplete_minlength', $minlength);
+		$wpfts_core->set_option('autocomplete_delay', $delay);
+
+		$jx->variable('code', 0);
+		return true;
+	}
+
 	public function ajax_smartform()
 	{
+		$this->require_manage_options();
+
 		global $wpfts_core;
 
 		$jx = new WPFTS_jxResponse();
@@ -818,6 +885,9 @@ class WPFTS_Admin_Actions
 							break;
 						case 'form_step5_show_results':
 							$is_form_processed = $this->process_form_step5_show_results($jx, $data);
+							break;
+						case 'form_autocomplete':
+							$is_form_processed = $this->process_form_autocomplete($jx, $data);
 							break;
 						default:
 							$is_form_processed = false;

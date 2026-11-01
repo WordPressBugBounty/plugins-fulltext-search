@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 class WPFTS_Indexing_Rules
 {
 	function parseParam($k, $v)

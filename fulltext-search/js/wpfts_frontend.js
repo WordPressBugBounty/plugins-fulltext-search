@@ -7,6 +7,16 @@ jQuery(document).ready(function()
 		let formElement = v;
 		let inp = jQuery('input[name="s"]', v);
 
+		let acConfig = window.wpfts_autocomplete_config || {};
+		let acMinLength = parseInt(acConfig.minLength, 10);
+		if (isNaN(acMinLength) || (acMinLength < 1)) {
+			acMinLength = 3;
+		}
+		let acDelay = parseInt(acConfig.delay, 10);
+		if (isNaN(acDelay) || (acDelay < 0)) {
+			acDelay = 500;
+		}
+
 		jQuery(inp).autocomplete({
 			source: function(request, response)
 			{
@@ -38,8 +48,8 @@ jQuery(document).ready(function()
 					}
 				});
 			},
-			minLength: 1,
-			delay: 300,
+			minLength: acMinLength,
+			delay: acDelay,
 			select: function( event, ui ) {
 				var t = jQuery('<textarea />').html(ui.item.label).text();
 				// Remove <sup>

@@ -1,9 +1,9 @@
 ﻿=== WP Fast Total Search - The Power of Indexed Search ===
 Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
-Requires at least: 5.0
+Requires at least: 5.8
 Tested up to: 7.1
-Stable tag: 1.83.286
+Stable tag: 1.84.291
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -121,6 +121,26 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.84.291 =
+* Plugin Check quick fixes: require WordPress 5.8, guard PHP files against direct access, escape nonce output, load scripts in the footer, remove load_plugin_textdomain() and remove Flare debug file logging.
+* Hardened request handling: unslash and sanitize superglobal input, verify query-log settings nonces before reading the payload, and mark intentionally nonce-free read-only endpoints.
+
+= 1.84.290 =
+* Autocomplete: frontend assets are loaded only when a WPFTS search widget, block or shortcode is present.
+* Autocomplete: added settings for result limit (default 10), minimum query length (default 3) and debounce delay (default 500); the result limit is enforced server-side.
+
+= 1.84.289 =
+* Fixed regression: restored the HTTP indexer loop. WP-Cron checks DB flags and only kicks the loop when work is pending or the loop is stale; it runs one direct step if the self-request fails.
+
+= 1.84.288 =
+* Performance: save_post/delete now update only the affected index record instead of running a full posts sync; indexer starts are coalesced.
+* Performance: a paused indexer no longer writes options or keeps the minute cron event.
+* Multisite: post reindex now uses the current site's index table prefix.
+
+= 1.84.287 =
+* Security: fixed missing capability checks in privileged AJAX actions (Subscriber-level authorization bypass).
+* Security: administrator nonces are no longer exposed to non-admin users; the internal indexer loopback now uses a short-lived HMAC token.
 
 = 1.83.286 =
 * Fixed exploit found by William Honnér: unauthenticated extraction of any postmeta value via a meta_query REGEXP oracle. Thanks a lot!

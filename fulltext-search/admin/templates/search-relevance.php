@@ -1,5 +1,8 @@
 <?php
 
+defined('ABSPATH') || exit;
+
+
 /**  
  * Copyright 2013-2024 Epsiloncool
  *
@@ -85,6 +88,7 @@
 					<div class="tab-pane p-3" id="pills-so_display" role="tabpanel" aria-labelledby="pills-so_display-tab">
 						<?php
 							require dirname(__FILE__).'/blocks/step5_smart_excerpts_box.php';
+							require dirname(__FILE__).'/blocks/autocomplete_box.php';
 						?>
 					</div>
 				</div>
