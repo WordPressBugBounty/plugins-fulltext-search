@@ -3,7 +3,7 @@ Contributors: Epsiloncool
 Tags: search pdf, fulltext search, better search, relevant search, extended search
 Requires at least: 5.8
 Tested up to: 7.1
-Stable tag: 1.84.291
+Stable tag: 1.84.292
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -121,6 +121,9 @@ Please report security bugs found in the WP Fast Total Search plugin's source co
 8. Search Results Example
 
 == Changelog ==
+
+= 1.84.292 =
+* Special thanks and respect to Harry Nguyen for responsibly reporting the issue!
 
 = 1.84.291 =
 * Plugin Check quick fixes: require WordPress 5.8, guard PHP files against direct access, escape nonce output, load scripts in the footer, remove load_plugin_textdomain() and remove Flare debug file logging.
